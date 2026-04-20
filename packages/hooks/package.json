@@ -1,0 +1,14 @@
+{
+  "name": "@marker/hooks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Filesystem and Bash hooks for Marker agents",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

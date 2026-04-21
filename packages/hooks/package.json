@@ -1,6 +1,6 @@
 {
   "name": "@marker/hooks",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "private": true,
   "description": "Filesystem and Bash hooks for Marker agents",
   "main": "dist/index.js",

@@ -20,11 +20,10 @@ describe("toClaudeCodeSettings", () => {
       expect(entries.length).toBeGreaterThanOrEqual(1);
 
       for (const entry of entries) {
-        // matcher with tools array
+        // matcher is a pipe-separated string of tool names
         expect(entry).toHaveProperty("matcher");
-        expect(entry.matcher).toHaveProperty("tools");
-        expect(Array.isArray(entry.matcher.tools)).toBe(true);
-        expect(entry.matcher.tools).toEqual(["Write", "Edit", "Bash"]);
+        expect(typeof entry.matcher).toBe("string");
+        expect(entry.matcher).toBe("Write|Edit|Bash");
 
         // nested hooks array with type and command
         expect(entry).toHaveProperty("hooks");

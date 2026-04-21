@@ -114,3 +114,41 @@ Consumers must install `@marker/kill-switch` alongside `@marker/hooks`. This is 
 ## Lesson
 
 Monorepo workspace protocols (`workspace:*`) are intentionally non-portable. Any framework intended to be consumed outside its own monorepo must use real version ranges in dependencies that ship to consumers. Internal monorepo dev convenience must not bleed into the published interface. A test that installs each package into a clean directory (outside the monorepo) and confirms it loads would have caught this.
+
+---
+
+# Incident: Misread Claude Code Hook Matcher Format from Error Message Instead of Docs
+
+## What was broken
+
+`toClaudeCodeSettings` in `@marker/hooks` emitted the `matcher` field as an object (`{ tools: ["Write", "Edit", "Bash"] }`). Claude Code's current schema requires `matcher` to be a plain string with pipe-separated tool names (`"Write|Edit|Bash"`). Claude Code silently rejected the generated settings, so hooks were not registered and all tool calls proceeded unblocked.
+
+## When discovered
+
+2026-04-20
+
+## Impact
+
+Any consuming repo that ran `marker-hooks install` with `@marker/hooks@0.3.x` had hooks that Claude Code ignored. The generated `.claude/settings.json` contained a structurally invalid matcher field. PreToolUse and PostToolUse enforcement was completely non-functional despite the settings file existing.
+
+## Root cause
+
+1. When fixing the previous incident (flat format → matcher-based format), the fix was based on an example shown in Claude Code's error message output rather than the official documentation.
+2. The error message displayed an object-form matcher example (`{ tools: [...] }`) which was outdated or illustrative — the actual current schema uses a string.
+3. No validation was performed against the official Claude Code docs at the time of the fix.
+4. The unit and integration tests asserted the wrong (object) format, so they passed while the output was still invalid.
+
+## Fix applied
+
+- Changed `ClaudeCodeHookEntry.matcher` type from `{ tools: string[] }` to `string`.
+- Updated `toClaudeCodeSettings` to emit `"Write|Edit|Bash"` as the matcher value.
+- Updated unit tests (`adapters.test.ts`) and integration tests (`install.integration.test.ts`) to assert the string-based matcher format.
+- Bumped `@marker/hooks` to `0.5.0` (breaking format change).
+
+## Remediation
+
+Consuming repos must re-run `marker-hooks install` after updating `@marker/hooks` to `>=0.5.0`. The old settings.json contains an object-form matcher that Claude Code does not accept.
+
+## Lesson
+
+When fixing format errors against an external tool, always read the official documentation, not the tool's error message examples — error message examples can be wrong or out of date. The Claude Code error message displayed an object-form matcher example while the actual current schema requires a string. Two iteration cycles were lost following the misleading example. Always check the canonical docs first.

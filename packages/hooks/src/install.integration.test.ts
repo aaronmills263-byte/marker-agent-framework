@@ -132,10 +132,10 @@ describe("hooks install integration", () => {
       expect(entries.length).toBeGreaterThanOrEqual(1);
 
       for (const entry of entries) {
-        // Each entry has matcher.tools array and nested hooks array
+        // Each entry has matcher string (pipe-separated tool names) and nested hooks array
         expect(entry).toHaveProperty("matcher");
-        expect(Array.isArray(entry.matcher.tools)).toBe(true);
-        expect(entry.matcher.tools).toEqual(["Write", "Edit", "Bash"]);
+        expect(typeof entry.matcher).toBe("string");
+        expect(entry.matcher).toBe("Write|Edit|Bash");
 
         expect(Array.isArray(entry.hooks)).toBe(true);
         for (const hook of entry.hooks) {

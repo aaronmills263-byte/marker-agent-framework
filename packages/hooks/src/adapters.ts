@@ -6,7 +6,7 @@ export interface ClaudeCodeHookCommand {
 }
 
 export interface ClaudeCodeHookEntry {
-  matcher: { tools: string[] };
+  matcher: string;
   hooks: ClaudeCodeHookCommand[];
 }
 
@@ -30,7 +30,7 @@ export interface AgentSdkConfig {
 }
 
 /** Tools that our hooks need to inspect — Write/Edit for path guards, Bash for deny patterns. */
-const HOOKED_TOOLS = ["Write", "Edit", "Bash"];
+const HOOKED_TOOLS_MATCHER = "Write|Edit|Bash";
 
 /**
  * Convert hook rules to Claude Code settings.json format.
@@ -53,7 +53,7 @@ export function toClaudeCodeSettings(
     hooks: {
       PreToolUse: [
         {
-          matcher: { tools: HOOKED_TOOLS },
+          matcher: HOOKED_TOOLS_MATCHER,
           hooks: [
             {
               type: "command",
@@ -64,7 +64,7 @@ export function toClaudeCodeSettings(
       ],
       PostToolUse: [
         {
-          matcher: { tools: HOOKED_TOOLS },
+          matcher: HOOKED_TOOLS_MATCHER,
           hooks: [
             {
               type: "command",

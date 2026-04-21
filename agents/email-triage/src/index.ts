@@ -6,7 +6,7 @@ export const manifest: AgentManifest = {
   name: 'email-triage',
   tier: Tier.Approve,
   site: 'links-marker',
-  marmaladeTransferTarget: 'ML-915',
+  marmaladeTransferTarget: 'ML-914',
   actionTypes: ['email_send', 'external_api'],
   evalSuitePath: './src/eval.ts',
 };

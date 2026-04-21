@@ -6,7 +6,7 @@
 
 **Site:** Multi-site
 
-**Transfer Target:** ML-917
+**Transfer Target:** Marmalade Weekly BI Agent (ID TBD)
 
 **Status:** Shadow mode, not yet running.
 

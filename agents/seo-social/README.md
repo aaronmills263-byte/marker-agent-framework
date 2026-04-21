@@ -6,7 +6,7 @@
 
 **Site:** Mountain Marker
 
-**Transfer Target:** ML-914
+**Transfer Target:** Marmalade content agent (ID TBD)
 
 **Status:** Shadow mode, not yet running.
 

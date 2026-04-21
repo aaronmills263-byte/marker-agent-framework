@@ -6,7 +6,7 @@ export const manifest: AgentManifest = {
   name: 'weekly-bi',
   tier: Tier.Notify,
   site: 'multi-site',
-  marmaladeTransferTarget: 'ML-917',
+  marmaladeTransferTarget: 'Marmalade Weekly BI Agent (ID TBD)',
   actionTypes: ['file_write', 'external_api'],
   evalSuitePath: './src/eval.ts',
 };

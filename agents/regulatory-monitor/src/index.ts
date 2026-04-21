@@ -6,7 +6,7 @@ export const manifest: AgentManifest = {
   name: 'regulatory-monitor',
   tier: Tier.Approve,
   site: 'mountain-marker',
-  marmaladeTransferTarget: 'ML-918',
+  marmaladeTransferTarget: 'ML-915',
   actionTypes: ['external_api', 'email_send'],
   evalSuitePath: './src/eval.ts',
 };

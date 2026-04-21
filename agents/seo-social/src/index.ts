@@ -6,7 +6,7 @@ export const manifest: AgentManifest = {
   name: 'seo-social',
   tier: Tier.Approve,
   site: 'mountain-marker',
-  marmaladeTransferTarget: 'ML-914',
+  marmaladeTransferTarget: 'Marmalade content agent (ID TBD)',
   actionTypes: ['social_post', 'external_api'],
   evalSuitePath: './src/eval.ts',
 };

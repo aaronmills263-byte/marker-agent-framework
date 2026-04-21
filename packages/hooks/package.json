@@ -1,12 +1,14 @@
 {
   "name": "@marker/hooks",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Filesystem and Bash hooks for Marker agents",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "marker-hooks": "dist/cli.js"
+    "marker-hooks": "./dist/cli.js",
+    "marker-pretooluse": "./dist/handlers/pretooluse-cli.js",
+    "marker-posttooluse": "./dist/handlers/posttooluse-cli.js"
   },
   "scripts": {
     "build": "tsc"

@@ -1,0 +1,20 @@
+{
+  "name": "@marker/agent-regulatory-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Regulatory compliance monitoring agent for Mountain Marker",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@marker/tiers": "workspace:*",
+    "@marker/kill-switch": "workspace:*",
+    "@marker/shadow-mode": "workspace:*",
+    "@marker/evals": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

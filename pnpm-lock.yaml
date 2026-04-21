@@ -21,6 +21,101 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/node@22.19.17)(tsx@4.21.0)
 
+  agents/affiliate-recon:
+    dependencies:
+      '@marker/evals':
+        specifier: workspace:*
+        version: link:../../packages/evals
+      '@marker/kill-switch':
+        specifier: workspace:*
+        version: link:../../packages/kill-switch
+      '@marker/shadow-mode':
+        specifier: workspace:*
+        version: link:../../packages/shadow-mode
+      '@marker/tiers':
+        specifier: workspace:*
+        version: link:../../packages/tiers
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  agents/email-triage:
+    dependencies:
+      '@marker/evals':
+        specifier: workspace:*
+        version: link:../../packages/evals
+      '@marker/kill-switch':
+        specifier: workspace:*
+        version: link:../../packages/kill-switch
+      '@marker/shadow-mode':
+        specifier: workspace:*
+        version: link:../../packages/shadow-mode
+      '@marker/tiers':
+        specifier: workspace:*
+        version: link:../../packages/tiers
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  agents/regulatory-monitor:
+    dependencies:
+      '@marker/evals':
+        specifier: workspace:*
+        version: link:../../packages/evals
+      '@marker/kill-switch':
+        specifier: workspace:*
+        version: link:../../packages/kill-switch
+      '@marker/shadow-mode':
+        specifier: workspace:*
+        version: link:../../packages/shadow-mode
+      '@marker/tiers':
+        specifier: workspace:*
+        version: link:../../packages/tiers
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  agents/seo-social:
+    dependencies:
+      '@marker/evals':
+        specifier: workspace:*
+        version: link:../../packages/evals
+      '@marker/kill-switch':
+        specifier: workspace:*
+        version: link:../../packages/kill-switch
+      '@marker/shadow-mode':
+        specifier: workspace:*
+        version: link:../../packages/shadow-mode
+      '@marker/tiers':
+        specifier: workspace:*
+        version: link:../../packages/tiers
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
+  agents/weekly-bi:
+    dependencies:
+      '@marker/evals':
+        specifier: workspace:*
+        version: link:../../packages/evals
+      '@marker/kill-switch':
+        specifier: workspace:*
+        version: link:../../packages/kill-switch
+      '@marker/shadow-mode':
+        specifier: workspace:*
+        version: link:../../packages/shadow-mode
+      '@marker/tiers':
+        specifier: workspace:*
+        version: link:../../packages/tiers
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
+
   packages/evals:
     devDependencies:
       typescript:

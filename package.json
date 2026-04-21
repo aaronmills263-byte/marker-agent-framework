@@ -8,7 +8,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "kill-all": "tsx scripts/kill-all.ts",
-    "drill-kill-switch": "tsx scripts/drill-kill-switch.ts"
+    "drill-kill-switch": "tsx scripts/drill-kill-switch.ts",
+    "agents:list": "tsx scripts/agents-list.ts",
+    "agents:drill-kill": "tsx scripts/agents-drill-kill.ts"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

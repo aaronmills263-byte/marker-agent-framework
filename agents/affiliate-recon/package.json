@@ -1,0 +1,20 @@
+{
+  "name": "@marker/agent-affiliate-recon",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Affiliate reconnaissance and link validation agent for Links Marker",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@marker/tiers": "workspace:*",
+    "@marker/kill-switch": "workspace:*",
+    "@marker/shadow-mode": "workspace:*",
+    "@marker/evals": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
+  }
+}

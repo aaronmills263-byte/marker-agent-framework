@@ -6,7 +6,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "eval:all": "echo 'No agent eval suites wired yet — will be populated in Week 3+'"
   },
   "devDependencies": {
     "typescript": "^5.7.0"

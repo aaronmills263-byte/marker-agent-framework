@@ -5,10 +5,15 @@ export interface ClaudeCodeHookCommand {
   command: string;
 }
 
+export interface ClaudeCodeHookEntry {
+  matcher: { tools: string[] };
+  hooks: ClaudeCodeHookCommand[];
+}
+
 export interface ClaudeCodeSettings {
   hooks: {
-    PreToolUse: ClaudeCodeHookCommand[];
-    PostToolUse: ClaudeCodeHookCommand[];
+    PreToolUse: ClaudeCodeHookEntry[];
+    PostToolUse: ClaudeCodeHookEntry[];
   };
 }
 
@@ -24,26 +29,48 @@ export interface AgentSdkConfig {
   protectedPaths: string[];
 }
 
+/** Tools that our hooks need to inspect — Write/Edit for path guards, Bash for deny patterns. */
+const HOOKED_TOOLS = ["Write", "Edit", "Bash"];
+
 /**
  * Convert hook rules to Claude Code settings.json format.
- * The settings reference shell scripts that invoke the TypeScript handlers.
+ * Uses the current matcher-based schema that Claude Code requires.
+ *
+ * @param hooksDir Absolute path to the directory containing pretooluse.sh / posttooluse.sh.
+ *                 Must be absolute so hooks work regardless of Claude Code's cwd.
  */
 export function toClaudeCodeSettings(
   _rules: HookRules,
-  markerDir: string = ".marker/hooks",
+  hooksDir: string,
 ): ClaudeCodeSettings {
+  if (!hooksDir.startsWith("/")) {
+    throw new Error(
+      `toClaudeCodeSettings requires an absolute hooksDir path, got: ${hooksDir}`,
+    );
+  }
+
   return {
     hooks: {
       PreToolUse: [
         {
-          type: "command",
-          command: `${markerDir}/pretooluse.sh`,
+          matcher: { tools: HOOKED_TOOLS },
+          hooks: [
+            {
+              type: "command",
+              command: `${hooksDir}/pretooluse.sh`,
+            },
+          ],
         },
       ],
       PostToolUse: [
         {
-          type: "command",
-          command: `${markerDir}/posttooluse.sh`,
+          matcher: { tools: HOOKED_TOOLS },
+          hooks: [
+            {
+              type: "command",
+              command: `${hooksDir}/posttooluse.sh`,
+            },
+          ],
         },
       ],
     },

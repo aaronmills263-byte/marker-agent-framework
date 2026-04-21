@@ -34,3 +34,46 @@ Consuming repos must re-run `marker-hooks install` after updating `@marker/hooks
 ## Lesson
 
 Integration testing must invoke the full installed-and-running path, not just unit-test the handler logic in isolation. The unit tests for `handlePreToolUse()` all passed while the actual hook enforcement was completely broken because no test ever executed the generated shell script end-to-end.
+
+---
+
+# Incident: Claude Code Hook Settings Format Rejected
+
+## What was broken
+
+The `toClaudeCodeSettings` function in `@marker/hooks` emitted `.claude/settings.json` in an older flat format (`hooks.PreToolUse: [{type, command}]`). Claude Code now requires a matcher-based schema where each event contains `{matcher: {tools: [...]}, hooks: [{type, command}]}` objects. Claude Code silently rejected the generated settings file, so hooks were never registered and all tool calls proceeded unblocked.
+
+Additionally, the generated `command` paths were relative (`.marker/hooks/pretooluse.sh`), which would fail when Claude Code invokes hooks from a different working directory.
+
+## When discovered
+
+2026-04-20
+
+## Impact
+
+Any consuming repo that ran `marker-hooks install` with `@marker/hooks@0.2.x` had hooks that Claude Code ignored entirely. PreToolUse and PostToolUse rules (deny patterns, protected paths, kill switch) were not enforced. The hooks appeared installed (shell scripts existed, settings.json was present) but Claude Code did not recognise the format.
+
+## Root cause
+
+1. Claude Code changed its hook settings schema to require a `matcher` object wrapping each hook entry, but no changelog or versioned schema was published.
+2. `toClaudeCodeSettings` was written against the older flat format and was never validated against the actual Claude Code parser.
+3. The generated command paths were relative, not absolute — fragile if Claude Code's cwd differs from the repo root.
+4. No test validated the structure of the emitted settings.json against what Claude Code expects.
+
+## Fix applied
+
+- Updated `ClaudeCodeSettings` types to include the `ClaudeCodeHookEntry` interface with `matcher` and nested `hooks` array.
+- `toClaudeCodeSettings` now emits the matcher-based schema with `tools: ["Write", "Edit", "Bash"]`.
+- `toClaudeCodeSettings` now requires an absolute `hooksDir` path and throws if given a relative path.
+- `generate.ts` resolves the hooks directory to an absolute path before passing it.
+- Added unit test (`adapters.test.ts`) asserting the generated settings match the matcher-based structure.
+- Added integration test asserting the written `.claude/settings.json` matches the schema and uses absolute paths.
+- Bumped version to `0.3.0` (breaking format change).
+
+## Remediation
+
+Consuming repos must re-run `marker-hooks install` after updating `@marker/hooks` to `>=0.3.0`. The old settings.json uses the flat format that Claude Code no longer accepts.
+
+## Lesson
+
+Integrations with external tools must include a version-compatibility check or canary test. Claude Code's hook format changing silently broke our generator. A weekly canary that runs `marker-hooks install` against a temp dir and verifies Claude Code accepts the result would have caught this within 7 days.

@@ -54,7 +54,8 @@ exec node "${postCliPath}"
   const claudeDir = path.join(repoRoot, ".claude");
   fs.mkdirSync(claudeDir, { recursive: true });
 
-  const settings = toClaudeCodeSettings(defaultMarkerRules, ".marker/hooks");
+  const absoluteHooksDir = path.resolve(repoRoot, ".marker", "hooks");
+  const settings = toClaudeCodeSettings(defaultMarkerRules, absoluteHooksDir);
   fs.writeFileSync(
     path.join(claudeDir, "settings.json"),
     JSON.stringify(settings, null, 2) + "\n",

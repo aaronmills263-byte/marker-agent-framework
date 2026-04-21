@@ -32,10 +32,22 @@ Every Marker agent must satisfy all five before shipping:
 
 ## Consuming from a Marker site
 
+Each `@marker/*` package declares its cross-package dependencies as **peer dependencies**. When you install a package, you must also install its peers. In practice, install all five together:
+
 ```bash
-# In your site's package.json, add the framework packages you need:
-pnpm add @marker/hooks @marker/kill-switch @marker/tiers @marker/shadow-mode
+# Mountain Marker / Marmalade / any consuming project:
+pnpm add \
+  @marker/hooks \
+  @marker/kill-switch \
+  @marker/tiers \
+  @marker/shadow-mode \
+  @marker/evals
 ```
+
+> **Why?** The framework uses `peerDependencies` so that `workspace:*` protocols (used internally for monorepo dev) never leak into your lockfile. You control which versions you pin.
+
+If you only need a subset, check each package's `peerDependencies` field. Currently:
+- `@marker/hooks` requires `@marker/kill-switch` as a peer.
 
 ```typescript
 import { isKilled } from "@marker/kill-switch";

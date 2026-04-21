@@ -77,3 +77,40 @@ Consuming repos must re-run `marker-hooks install` after updating `@marker/hooks
 ## Lesson
 
 Integrations with external tools must include a version-compatibility check or canary test. Claude Code's hook format changing silently broke our generator. A weekly canary that runs `marker-hooks install` against a temp dir and verifies Claude Code accepts the result would have caught this within 7 days.
+
+---
+
+# Incident: workspace:* Protocol Leaks into Published Packages
+
+## What was broken
+
+`@marker/hooks` declared `"@marker/kill-switch": "workspace:*"` in its `dependencies`. When a consuming project outside this monorepo (e.g. Mountain Marker) installed `@marker/hooks` via `file:../marker-agent-framework/packages/hooks`, pnpm failed to resolve the dependency because `workspace:*` is only valid inside a pnpm workspace. The package was un-installable outside the monorepo.
+
+## When discovered
+
+2026-04-20
+
+## Impact
+
+Any project consuming framework packages via `file:` references (the intended pattern before registry publication) could not install `@marker/hooks`. The install failed with an unresolvable `workspace:*` specifier, blocking all downstream development that depended on hooks or kill-switch enforcement.
+
+## Root cause
+
+1. `workspace:*` is a pnpm workspace protocol — it resolves only when a `pnpm-workspace.yaml` declares the target package as a sibling workspace.
+2. `@marker/hooks` listed `@marker/kill-switch` in `dependencies` with `workspace:*`, which works fine inside the monorepo but is non-portable.
+3. No test consumed the packages from outside the workspace to validate portability.
+
+## Fix applied
+
+- Moved `@marker/kill-switch` from `dependencies` to `peerDependencies` (with `"^0.1.0"` version range) in `@marker/hooks`.
+- Added `@marker/kill-switch: "workspace:*"` to `devDependencies` so local development still resolves correctly.
+- Bumped `@marker/hooks` to `0.4.0` (consumers now must explicitly install the peer dependency).
+- Updated root README to document the consumption pattern and peer dependency requirements.
+
+## Remediation
+
+Consumers must install `@marker/kill-switch` alongside `@marker/hooks`. This is now documented in the README with a copy-paste install block.
+
+## Lesson
+
+Monorepo workspace protocols (`workspace:*`) are intentionally non-portable. Any framework intended to be consumed outside its own monorepo must use real version ranges in dependencies that ship to consumers. Internal monorepo dev convenience must not bleed into the published interface. A test that installs each package into a clean directory (outside the monorepo) and confirms it loads would have caught this.

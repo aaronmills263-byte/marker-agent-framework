@@ -124,13 +124,13 @@ importers:
 
   packages/hooks:
     dependencies:
-      '@marker/kill-switch':
-        specifier: workspace:*
-        version: link:../kill-switch
       picomatch:
         specifier: ^4.0.0
         version: 4.0.4
     devDependencies:
+      '@marker/kill-switch':
+        specifier: workspace:*
+        version: link:../kill-switch
       '@types/picomatch':
         specifier: ^4.0.0
         version: 4.0.3

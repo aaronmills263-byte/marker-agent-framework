@@ -1,6 +1,6 @@
 {
   "name": "@marker/hooks",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Filesystem and Bash hooks for Marker agents",
   "main": "dist/index.js",
@@ -14,10 +14,13 @@
     "build": "tsc"
   },
   "dependencies": {
-    "@marker/kill-switch": "workspace:*",
     "picomatch": "^4.0.0"
   },
+  "peerDependencies": {
+    "@marker/kill-switch": "^0.1.0"
+  },
   "devDependencies": {
+    "@marker/kill-switch": "workspace:*",
     "@types/picomatch": "^4.0.0",
     "typescript": "^5.7.0"
   }

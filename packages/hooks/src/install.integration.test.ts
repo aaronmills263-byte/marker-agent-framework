@@ -34,14 +34,18 @@ describe("hooks install integration", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("installs shell scripts that invoke the CLI handlers", () => {
+  it("installs shell scripts and config files", () => {
     install(tmpDir);
 
     const preScript = path.join(tmpDir, ".marker", "hooks", "pretooluse.sh");
     const postScript = path.join(tmpDir, ".marker", "hooks", "posttooluse.sh");
+    const configJs = path.join(tmpDir, ".marker", "config.js");
+    const configTs = path.join(tmpDir, ".marker", "config.ts");
 
     expect(fs.existsSync(preScript)).toBe(true);
     expect(fs.existsSync(postScript)).toBe(true);
+    expect(fs.existsSync(configJs)).toBe(true);
+    expect(fs.existsSync(configTs)).toBe(true);
 
     // Verify scripts reference the correct handler paths
     const preContent = fs.readFileSync(preScript, "utf-8");
@@ -154,6 +158,67 @@ describe("hooks install integration", () => {
     expect(postCmd).toContain("posttooluse.sh");
     expect(path.isAbsolute(preCmd)).toBe(true);
     expect(path.isAbsolute(postCmd)).toBe(true);
+  });
+
+  it("pretooluse.sh blocks writes to consumer-configured protected paths (exit 2)", () => {
+    install(tmpDir);
+
+    // Write a consumer config.js that adds a custom protected path
+    const configPath = path.join(tmpDir, ".marker", "config.js");
+    fs.writeFileSync(configPath, `
+const { defaultMarkerRules } = require("@marker/hooks");
+exports.rules = {
+  ...defaultMarkerRules,
+  protectedPaths: [...defaultMarkerRules.protectedPaths, "custom/protected.ts"],
+};
+`, "utf-8");
+
+    const preScript = path.join(tmpDir, ".marker", "hooks", "pretooluse.sh");
+    const payload = JSON.stringify({
+      tool_name: "Write",
+      tool_input: { file_path: "custom/protected.ts" },
+    });
+
+    try {
+      execSync(`echo '${payload}' | bash "${preScript}"`, {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      expect.fail("Expected script to exit with code 2");
+    } catch (err: any) {
+      expect(err.status).toBe(2);
+      expect(err.stdout || err.stderr).toContain("Blocked");
+    }
+  });
+
+  it("pretooluse.sh falls back to defaults when no consumer config exists", () => {
+    install(tmpDir);
+
+    // Remove the generated config so we test the fallback
+    const configJsPath = path.join(tmpDir, ".marker", "config.js");
+    const configTsPath = path.join(tmpDir, ".marker", "config.ts");
+    if (fs.existsSync(configJsPath)) fs.unlinkSync(configJsPath);
+    if (fs.existsSync(configTsPath)) fs.unlinkSync(configTsPath);
+
+    const preScript = path.join(tmpDir, ".marker", "hooks", "pretooluse.sh");
+
+    // .env is protected by default rules
+    const payload = JSON.stringify({
+      tool_name: "Write",
+      tool_input: { file_path: ".env" },
+    });
+
+    try {
+      execSync(`echo '${payload}' | bash "${preScript}"`, {
+        cwd: tmpDir,
+        encoding: "utf-8",
+        stdio: ["pipe", "pipe", "pipe"],
+      });
+      expect.fail("Expected script to exit with code 2");
+    } catch (err: any) {
+      expect(err.status).toBe(2);
+    }
   });
 
   it("pretooluse.sh blocks writes to protected paths (exit 2)", () => {

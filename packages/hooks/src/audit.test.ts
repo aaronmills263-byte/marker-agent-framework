@@ -71,6 +71,21 @@ describe("LocalFileStorage", () => {
     expect(result).toEqual([]);
   });
 
+  it("query excludes test entries by default", async () => {
+    await storage.append(makeEntry({ tool: "Bash", target: "ls" }));
+    await storage.append(makeEntry({ tool: "Write", target: "file.ts", isTest: true }));
+    await storage.append(makeEntry({ tool: "Bash", target: "echo hi" }));
+
+    // Default query excludes test entries
+    const results = await storage.query({});
+    expect(results).toHaveLength(2);
+    expect(results.every((e) => !e.isTest)).toBe(true);
+
+    // includeTests: true returns all entries
+    const all = await storage.query({ includeTests: true });
+    expect(all).toHaveLength(3);
+  });
+
   it("query with since filter", async () => {
     const old = makeEntry({ timestamp: "2024-01-01T00:00:00.000Z" });
     const recent = makeEntry({ timestamp: "2026-06-01T00:00:00.000Z" });

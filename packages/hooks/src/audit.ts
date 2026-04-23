@@ -10,6 +10,7 @@ export interface AuditEntry {
   sessionId: string;
   bypass?: boolean;
   warning?: string;
+  isTest?: boolean;
 }
 
 export interface AuditFilter {
@@ -17,6 +18,7 @@ export interface AuditFilter {
   sessionId?: string;
   since?: Date;
   limit?: number;
+  includeTests?: boolean;
 }
 
 export interface AuditStorage {
@@ -54,6 +56,11 @@ export class LocalFileStorage implements AuditStorage {
     const lines = raw.trim().split("\n").filter(Boolean);
 
     let entries: AuditEntry[] = lines.map((line) => JSON.parse(line));
+
+    // Exclude test entries by default unless explicitly included
+    if (!filter.includeTests) {
+      entries = entries.filter((e) => !e.isTest);
+    }
 
     if (filter.tool) {
       entries = entries.filter((e) => e.tool === filter.tool);

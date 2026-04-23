@@ -14,10 +14,11 @@ export interface PostToolUseInput {
  */
 export async function handlePostToolUse(
   input: PostToolUseInput,
-  options: { sessionId?: string; storage?: LocalFileStorage } = {},
+  options: { sessionId?: string; storage?: LocalFileStorage; isTest?: boolean } = {},
 ): Promise<void> {
   const storage = options.storage ?? new LocalFileStorage();
   const sessionId = options.sessionId ?? process.env.MARKER_SESSION_ID ?? "unknown";
+  const isTest = options.isTest ?? process.env.MARKER_IS_TEST === "1";
 
   const target = extractTarget(input);
   const diffHash = input.tool_output
@@ -31,6 +32,7 @@ export async function handlePostToolUse(
     diffHash,
     exitStatus: input.exit_status ?? 0,
     sessionId,
+    ...(isTest ? { isTest: true } : {}),
   };
 
   await storage.append(entry);
@@ -48,6 +50,7 @@ function extractTarget(input: PostToolUseInput): string {
 
 /**
  * CLI entry point — reads tool call JSON from stdin.
+ * Extracts session_id from payload if present.
  */
 export async function main(): Promise<void> {
   const chunks: Buffer[] = [];
@@ -56,13 +59,23 @@ export async function main(): Promise<void> {
   }
   const raw = Buffer.concat(chunks).toString("utf-8");
 
-  let input: PostToolUseInput;
+  let parsed: Record<string, unknown>;
   try {
-    input = JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     // Don't block on parse failure
     return;
   }
 
-  await handlePostToolUse(input);
+  const input: PostToolUseInput = {
+    tool_name: String(parsed.tool_name ?? ""),
+    tool_input: (parsed.tool_input as Record<string, unknown>) ?? {},
+    tool_output: parsed.tool_output as string | undefined,
+    exit_status: parsed.exit_status as number | undefined,
+  };
+
+  // Extract session_id from the JSON payload if present
+  const sessionId = typeof parsed.session_id === "string" ? parsed.session_id : undefined;
+
+  await handlePostToolUse(input, { sessionId });
 }

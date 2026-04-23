@@ -3,6 +3,7 @@ import picomatch from "picomatch";
 import { isKilled } from "@marker/kill-switch";
 import { defaultMarkerRules, type HookRules } from "../rules.js";
 import { LocalFileStorage, type AuditEntry } from "../audit.js";
+import { loadConsumerRules } from "../config-loader.js";
 
 export interface ToolCallInput {
   tool_name: string;
@@ -28,10 +29,11 @@ export interface PreToolUseResult {
 export function handlePreToolUse(
   input: ToolCallInput,
   rules: HookRules = defaultMarkerRules,
-  options: { bypass?: boolean; sessionId?: string } = {},
+  options: { bypass?: boolean; sessionId?: string; isTest?: boolean } = {},
 ): PreToolUseResult {
   const storage = new LocalFileStorage();
   const sessionId = options.sessionId ?? process.env.MARKER_SESSION_ID ?? "unknown";
+  const isTest = options.isTest ?? process.env.MARKER_IS_TEST === "1";
 
   // HOOKS_BYPASS — allow but audit
   if (options.bypass || process.env.HOOKS_BYPASS === "1") {
@@ -42,6 +44,7 @@ export function handlePreToolUse(
       exitStatus: 0,
       sessionId,
       bypass: true,
+      ...(isTest ? { isTest: true } : {}),
     };
     storage.append(entry).catch(() => {});
     return { exitCode: 0, message: "Bypassed (HOOKS_BYPASS=1)" };
@@ -137,6 +140,7 @@ function extractTarget(input: ToolCallInput): string {
 
 /**
  * CLI entry point — reads tool call JSON from stdin.
+ * Loads consumer .marker/config.ts if present, extracts session_id from payload.
  */
 export async function main(): Promise<void> {
   const chunks: Buffer[] = [];
@@ -145,16 +149,27 @@ export async function main(): Promise<void> {
   }
   const raw = Buffer.concat(chunks).toString("utf-8");
 
-  let input: ToolCallInput;
+  let parsed: Record<string, unknown>;
   try {
-    input = JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch {
     console.error("[marker-hooks] Failed to parse stdin as JSON");
     process.exit(0); // don't block on parse failure
     return;
   }
 
-  const result = handlePreToolUse(input);
+  const input: ToolCallInput = {
+    tool_name: String(parsed.tool_name ?? ""),
+    tool_input: (parsed.tool_input as Record<string, unknown>) ?? {},
+  };
+
+  // Extract session_id from the JSON payload if present
+  const sessionId = typeof parsed.session_id === "string" ? parsed.session_id : undefined;
+
+  // Load consumer config from .marker/config.ts (falls back to defaults)
+  const rules = await loadConsumerRules(process.cwd());
+
+  const result = handlePreToolUse(input, rules, { sessionId });
 
   if (result.message) {
     if (result.exitCode === 0) {

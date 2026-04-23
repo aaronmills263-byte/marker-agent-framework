@@ -20,14 +20,11 @@ describe("hooks install integration", () => {
     // Determine the hooks package root (this repo's packages/hooks)
     hooksPackageRoot = path.resolve(__dirname, "..");
 
-    // Simulate an installed @marker/hooks in node_modules
-    const markerHooksTarget = path.join(tmpDir, "node_modules", "@marker", "hooks");
-    fs.mkdirSync(markerHooksTarget, { recursive: true });
-    // Symlink so the dist directory is accessible
-    fs.symlinkSync(
-      path.join(hooksPackageRoot, "dist"),
-      path.join(markerHooksTarget, "dist"),
-    );
+    // Simulate an installed @aaronmills263-byte/hooks in node_modules
+    const scopeDir = path.join(tmpDir, "node_modules", "@aaronmills263-byte");
+    fs.mkdirSync(scopeDir, { recursive: true });
+    // Symlink the entire hooks package so require() can resolve package.json + dist
+    fs.symlinkSync(hooksPackageRoot, path.join(scopeDir, "hooks"));
   });
 
   afterEach(() => {
@@ -166,7 +163,7 @@ describe("hooks install integration", () => {
     // Write a consumer config.js that adds a custom protected path
     const configPath = path.join(tmpDir, ".marker", "config.js");
     fs.writeFileSync(configPath, `
-const { defaultMarkerRules } = require("@marker/hooks");
+const { defaultMarkerRules } = require("@aaronmills263-byte/hooks");
 exports.rules = {
   ...defaultMarkerRules,
   protectedPaths: [...defaultMarkerRules.protectedPaths, "custom/protected.ts"],

@@ -1,6 +1,6 @@
-import { Tier, AgentManifest, registerAgent } from '@marker/tiers';
-import { isKilled } from '@marker/kill-switch';
-import { captureShadowOutput, ShadowModeConfig, LocalShadowStorage } from '@marker/shadow-mode';
+import { Tier, AgentManifest, registerAgent } from '@aaronmills263-byte/tiers';
+import { isKilled } from '@aaronmills263-byte/kill-switch';
+import { captureShadowOutput, ShadowModeConfig, LocalShadowStorage } from '@aaronmills263-byte/shadow-mode';
 
 export const manifest: AgentManifest = {
   name: 'weekly-bi',

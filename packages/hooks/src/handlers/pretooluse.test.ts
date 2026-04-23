@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { handlePreToolUse, type ToolCallInput } from "./pretooluse.js";
 import { defaultMarkerRules, type HookRules } from "../rules.js";
-import { killAll, reset } from "@marker/kill-switch";
+import { killAll, reset } from "@aaronmills263-byte/kill-switch";
 
 describe("PreToolUse handler", () => {
   beforeEach(() => {

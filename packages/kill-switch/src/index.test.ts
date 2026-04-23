@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
 import { isKilled, killAll, reset, status, STATE_FILE_PATH } from "./index.js";
 
-describe("@marker/kill-switch", () => {
+describe("@aaronmills263-byte/kill-switch", () => {
   beforeEach(() => {
     delete process.env.MARKER_AGENTS_KILLED;
     if (fs.existsSync(STATE_FILE_PATH)) {

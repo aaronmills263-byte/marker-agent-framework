@@ -3,7 +3,7 @@
  * Usage: pnpm kill-all "reason here"
  */
 
-import { killAll, status } from "@marker/kill-switch";
+import { killAll, status } from "@aaronmills263-byte/kill-switch";
 
 const reason = process.argv[2];
 

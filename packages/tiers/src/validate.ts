@@ -2,7 +2,7 @@ import { Tier, TieredAction, ValidationResult } from './types.js';
 
 const EXTERNAL_ACTION_TYPES: TieredAction['type'][] = ['external_api', 'social_post', 'email_send'];
 
-// Audit-critical path patterns from @marker/hooks defaultMarkerRules
+// Audit-critical path patterns from @aaronmills263-byte/hooks defaultMarkerRules
 const AUDIT_CRITICAL_PATTERNS = [
   'src/app/api/**',
   'src/lib/auth/**',

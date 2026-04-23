@@ -3,8 +3,8 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { manifest, run } from './index.js';
-import { isKilled, killAll, reset } from '@marker/kill-switch';
-import { Tier, getRegisteredAgents } from '@marker/tiers';
+import { isKilled, killAll, reset } from '@aaronmills263-byte/kill-switch';
+import { Tier, getRegisteredAgents } from '@aaronmills263-byte/tiers';
 
 describe('agent: seo-social', () => {
   afterEach(() => {

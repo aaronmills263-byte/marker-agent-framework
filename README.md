@@ -14,11 +14,11 @@ The framework knows nothing about specific agents or sites. Agents import from t
 
 | Package | Purpose |
 |---------|---------|
-| `@marker/hooks` | Filesystem and Bash hooks — audit logging, policy enforcement |
-| `@marker/kill-switch` | Emergency disable mechanism for all agents |
-| `@marker/evals` | Promptfoo harness wrapper for agent evaluations |
-| `@marker/tiers` | Action tier classification (read-only / reversible / irreversible) |
-| `@marker/shadow-mode` | Output capture for human review before going live |
+| `@aaronmills263-byte/hooks` | Filesystem and Bash hooks — audit logging, policy enforcement |
+| `@aaronmills263-byte/kill-switch` | Emergency disable mechanism for all agents |
+| `@aaronmills263-byte/evals` | Promptfoo harness wrapper for agent evaluations |
+| `@aaronmills263-byte/tiers` | Action tier classification (read-only / reversible / irreversible) |
+| `@aaronmills263-byte/shadow-mode` | Output capture for human review before going live |
 
 ## Non-negotiable disciplines
 
@@ -32,28 +32,28 @@ Every Marker agent must satisfy all five before shipping:
 
 ## Consuming from a Marker site
 
-Each `@marker/*` package declares its cross-package dependencies as **peer dependencies**. When you install a package, you must also install its peers. In practice, install all five together:
+Each `@aaronmills263-byte/*` package declares its cross-package dependencies as **peer dependencies**. When you install a package, you must also install its peers. In practice, install all five together:
 
 ```bash
 # Mountain Marker / Marmalade / any consuming project:
 pnpm add \
-  @marker/hooks \
-  @marker/kill-switch \
-  @marker/tiers \
-  @marker/shadow-mode \
-  @marker/evals
+  @aaronmills263-byte/hooks \
+  @aaronmills263-byte/kill-switch \
+  @aaronmills263-byte/tiers \
+  @aaronmills263-byte/shadow-mode \
+  @aaronmills263-byte/evals
 ```
 
 > **Why?** The framework uses `peerDependencies` so that `workspace:*` protocols (used internally for monorepo dev) never leak into your lockfile. You control which versions you pin.
 
 If you only need a subset, check each package's `peerDependencies` field. Currently:
-- `@marker/hooks` requires `@marker/kill-switch` as a peer.
+- `@aaronmills263-byte/hooks` requires `@aaronmills263-byte/kill-switch` as a peer.
 
 ```typescript
-import { isKilled } from "@marker/kill-switch";
-import { classify, requiresApproval } from "@marker/tiers";
-import { capture } from "@marker/shadow-mode";
-import { registerHook } from "@marker/hooks";
+import { isKilled } from "@aaronmills263-byte/kill-switch";
+import { classify, requiresApproval } from "@aaronmills263-byte/tiers";
+import { capture } from "@aaronmills263-byte/shadow-mode";
+import { registerHook } from "@aaronmills263-byte/hooks";
 
 // Check kill switch before any action
 const status = isKilled();

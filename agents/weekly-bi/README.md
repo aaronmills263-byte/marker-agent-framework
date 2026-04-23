@@ -1,4 +1,4 @@
-# @marker/agent-weekly-bi
+# @aaronmills263-byte/agent-weekly-bi
 
 **Purpose:** Weekly business intelligence reporting agent spanning all Marker sites.
 

@@ -1,6 +1,6 @@
 {
-  "name": "@marker/hooks",
-  "version": "0.6.0",
+  "name": "@aaronmills263-byte/hooks",
+  "version": "0.7.0",
   "private": true,
   "description": "Filesystem and Bash hooks for Marker agents",
   "main": "dist/index.js",
@@ -17,11 +17,14 @@
     "picomatch": "^4.0.0"
   },
   "peerDependencies": {
-    "@marker/kill-switch": "^0.1.0"
+    "@aaronmills263-byte/kill-switch": "^0.2.0"
   },
   "devDependencies": {
-    "@marker/kill-switch": "workspace:*",
+    "@aaronmills263-byte/kill-switch": "workspace:*",
     "@types/picomatch": "^4.0.0",
     "typescript": "^5.7.0"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

@@ -1,4 +1,4 @@
-# @marker/agent-regulatory-monitor
+# @aaronmills263-byte/agent-regulatory-monitor
 
 **Purpose:** Regulatory compliance monitoring agent for Mountain Marker. Scans regulatory sources and alerts on changes relevant to the business.
 

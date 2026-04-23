@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import picomatch from "picomatch";
 import { defaultMarkerRules } from "./rules.js";
 
-describe("@marker/hooks rules", () => {
+describe("@aaronmills263-byte/hooks rules", () => {
   describe("protectedPaths glob matching", () => {
     it("matches .env files", () => {
       const isMatch = picomatch(defaultMarkerRules.protectedPaths);

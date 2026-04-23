@@ -1,4 +1,4 @@
-# @marker/agent-seo-social
+# @aaronmills263-byte/agent-seo-social
 
 **Purpose:** SEO & social content generation and posting agent for Mountain Marker.
 

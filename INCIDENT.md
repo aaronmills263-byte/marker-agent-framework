@@ -193,3 +193,40 @@ Consuming repos must re-run `marker-hooks install` after updating `@marker/hooks
 ## Lesson
 
 When a framework supports consumer-specific configuration, integration tests must verify the consumer config actually loads. Unit-testing the handler with default rules in scope passed because the bug was in the loader, not the handler logic. Tests must exercise the full config-loading path including consumer file discovery.
+
+---
+
+# Incident: Package Scope Renamed from @marker to @aaronmills263-byte for GitHub Packages Compatibility
+
+## What was broken
+
+All framework packages used the `@marker` npm scope (e.g. `@marker/hooks`, `@marker/kill-switch`). The `@marker` scope is not owned by us on npm, and GitHub Packages requires the package scope to match the GitHub repository owner (`aaronmills263-byte`). Publishing to GitHub Packages would have been rejected.
+
+## When discovered
+
+2026-04-22
+
+## Impact
+
+No runtime breakage — this was caught before any publishing attempt. However, all consuming projects must update their `package.json` dependencies and import statements to use the new `@aaronmills263-byte/*` scope.
+
+## Root cause
+
+The initial package names were chosen for developer ergonomics (`@marker/hooks` reads better than `@aaronmills263-byte/hooks`) without considering the publishing target's scope requirements. GitHub Packages enforces that the npm scope must match the repository owner or organization.
+
+## Fix applied
+
+- Renamed all 10 packages from `@marker/*` to `@aaronmills263-byte/*`.
+- Updated all import statements across `packages/`, `agents/`, and `scripts/`.
+- Updated generated config templates in `generate.ts` to reference the new scope.
+- Updated all READMEs and documentation.
+- Added `publishConfig.registry` pointing to `https://npm.pkg.github.com` in each framework package.
+- Bumped all package versions (breaking change for consumers).
+
+## Remediation
+
+Consumers must update all `@marker/*` references to `@aaronmills263-byte/*` in their `package.json` and source imports.
+
+## Lesson
+
+Choose your npm scope based on your publishing target from day one. If using GitHub Packages, the scope must match the repo owner. Renaming packages after consumers exist is a breaking change that ripples through every import statement and dependency declaration.

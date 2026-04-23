@@ -1,6 +1,6 @@
 import * as crypto from "node:crypto";
 import picomatch from "picomatch";
-import { isKilled } from "@marker/kill-switch";
+import { isKilled } from "@aaronmills263-byte/kill-switch";
 import { defaultMarkerRules, type HookRules } from "../rules.js";
 import { LocalFileStorage, type AuditEntry } from "../audit.js";
 import { loadConsumerRules } from "../config-loader.js";

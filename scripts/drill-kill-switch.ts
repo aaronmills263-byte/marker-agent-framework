@@ -4,7 +4,7 @@
  */
 
 import * as readline from "node:readline";
-import { killAll, isKilled, reset, status } from "@marker/kill-switch";
+import { killAll, isKilled, reset, status } from "@aaronmills263-byte/kill-switch";
 
 async function waitForEnter(): Promise<void> {
   const rl = readline.createInterface({ input: process.stdin, output: process.stdout });

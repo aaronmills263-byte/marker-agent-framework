@@ -1,6 +1,6 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { manifest, run } from './index.js';
-import { Tier, getRegisteredAgents } from '@marker/tiers';
+import { Tier, getRegisteredAgents } from '@aaronmills263-byte/tiers';
 
 describe('agent: affiliate-recon', () => {
   afterEach(() => {

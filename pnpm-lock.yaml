@@ -23,16 +23,16 @@ importers:
 
   agents/affiliate-recon:
     dependencies:
-      '@marker/evals':
+      '@aaronmills263-byte/evals':
         specifier: workspace:*
         version: link:../../packages/evals
-      '@marker/kill-switch':
+      '@aaronmills263-byte/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@marker/shadow-mode':
+      '@aaronmills263-byte/shadow-mode':
         specifier: workspace:*
         version: link:../../packages/shadow-mode
-      '@marker/tiers':
+      '@aaronmills263-byte/tiers':
         specifier: workspace:*
         version: link:../../packages/tiers
     devDependencies:
@@ -42,16 +42,16 @@ importers:
 
   agents/email-triage:
     dependencies:
-      '@marker/evals':
+      '@aaronmills263-byte/evals':
         specifier: workspace:*
         version: link:../../packages/evals
-      '@marker/kill-switch':
+      '@aaronmills263-byte/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@marker/shadow-mode':
+      '@aaronmills263-byte/shadow-mode':
         specifier: workspace:*
         version: link:../../packages/shadow-mode
-      '@marker/tiers':
+      '@aaronmills263-byte/tiers':
         specifier: workspace:*
         version: link:../../packages/tiers
     devDependencies:
@@ -61,16 +61,16 @@ importers:
 
   agents/regulatory-monitor:
     dependencies:
-      '@marker/evals':
+      '@aaronmills263-byte/evals':
         specifier: workspace:*
         version: link:../../packages/evals
-      '@marker/kill-switch':
+      '@aaronmills263-byte/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@marker/shadow-mode':
+      '@aaronmills263-byte/shadow-mode':
         specifier: workspace:*
         version: link:../../packages/shadow-mode
-      '@marker/tiers':
+      '@aaronmills263-byte/tiers':
         specifier: workspace:*
         version: link:../../packages/tiers
     devDependencies:
@@ -80,16 +80,16 @@ importers:
 
   agents/seo-social:
     dependencies:
-      '@marker/evals':
+      '@aaronmills263-byte/evals':
         specifier: workspace:*
         version: link:../../packages/evals
-      '@marker/kill-switch':
+      '@aaronmills263-byte/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@marker/shadow-mode':
+      '@aaronmills263-byte/shadow-mode':
         specifier: workspace:*
         version: link:../../packages/shadow-mode
-      '@marker/tiers':
+      '@aaronmills263-byte/tiers':
         specifier: workspace:*
         version: link:../../packages/tiers
     devDependencies:
@@ -99,16 +99,16 @@ importers:
 
   agents/weekly-bi:
     dependencies:
-      '@marker/evals':
+      '@aaronmills263-byte/evals':
         specifier: workspace:*
         version: link:../../packages/evals
-      '@marker/kill-switch':
+      '@aaronmills263-byte/kill-switch':
         specifier: workspace:*
         version: link:../../packages/kill-switch
-      '@marker/shadow-mode':
+      '@aaronmills263-byte/shadow-mode':
         specifier: workspace:*
         version: link:../../packages/shadow-mode
-      '@marker/tiers':
+      '@aaronmills263-byte/tiers':
         specifier: workspace:*
         version: link:../../packages/tiers
     devDependencies:
@@ -128,7 +128,7 @@ importers:
         specifier: ^4.0.0
         version: 4.0.4
     devDependencies:
-      '@marker/kill-switch':
+      '@aaronmills263-byte/kill-switch':
         specifier: workspace:*
         version: link:../kill-switch
       '@types/picomatch':

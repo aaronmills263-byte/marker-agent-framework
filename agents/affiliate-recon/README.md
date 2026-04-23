@@ -1,4 +1,4 @@
-# @marker/agent-affiliate-recon
+# @aaronmills263-byte/agent-affiliate-recon
 
 **Purpose:** Affiliate link reconnaissance and validation agent for Links Marker.
 

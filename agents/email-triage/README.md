@@ -1,4 +1,4 @@
-# @marker/agent-email-triage
+# @aaronmills263-byte/agent-email-triage
 
 **Purpose:** Email triage and intelligent routing agent for Links Marker.
 

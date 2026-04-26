@@ -1,7 +1,6 @@
 {
   "name": "@aaronmills263-byte/kill-switch",
   "version": "0.2.0",
-  "private": true,
   "description": "Shared disable mechanism for Marker agents",
   "files": [
     "dist",

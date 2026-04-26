@@ -305,3 +305,23 @@ Consuming repos must update to `@aaronmills263-byte/hooks@0.7.1`. No config chan
 ## Lesson
 
 Framework must normalise absolute paths to relative-from-consumer-root before matching. Critical: test fixtures must include real-world input formats (absolute paths from Claude Code), not just convenient relative paths. The regression test `absolute path under consumer root must match relative protected pattern` is the single most important test in the hooks package.
+
+---
+
+## Incident #9 — `marker-hooks install` overwrites consumer .marker/config.js even when v0.7.1 idempotent fix should prevent
+
+Discovered after v0.7.1 release. The idempotent install fix in v0.7.1 was supposed to skip writing config files if either .ts or .js already existed. In practice, when Mountain Marker upgraded from 0.7.0 to 0.7.1, `marker-hooks install` still regenerated `.marker/config.js` as a stub template. Consumer had to manually delete the stub to recover.
+
+Hypothesis: the idempotency check in generate.ts only checks `.marker/config.ts`, not `.marker/config.js`. Or it checks but somehow the stub written by 0.7.0 was treated as absent.
+
+Lesson: idempotency tests need both file types covered. Need a regression test that runs `marker-hooks install` twice in sequence and verifies the second run doesn't modify either config file.
+
+Mitigation in production: never run `marker-hooks install` after initial setup. Use a separate `marker-hooks regenerate-scripts` command for re-emitting just the shell wrappers, leaving config files untouched.
+
+## Incident #10 — `marker-hooks install` unconditionally writes .claude/settings.json
+
+Even when a consumer has explicitly disabled hooks (e.g., renamed settings.json to .disabled-pending-fix while debugging), `marker-hooks install` writes a fresh settings.json that re-enables hook enforcement. This is a security-critical footgun — framework upgrades silently override consumer's "I have disabled hooks" decision.
+
+Fix needed in v0.7.2: separate "install" (one-time setup) from "upgrade" (routine package update). Upgrades should never modify .claude/settings.json. Or: always check for .disabled-pending-fix and skip writing if present.
+
+Mitigation in production: after framework upgrades, verify .claude/settings.json hasn't been re-introduced if you intended hooks to stay disabled.

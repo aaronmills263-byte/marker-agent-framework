@@ -1,6 +1,6 @@
 {
   "name": "@aaronmills263-byte/shadow-mode",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Output capture for human review before agents go live",
   "files": [
     "dist",

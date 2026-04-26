@@ -1,9 +1,10 @@
 import * as crypto from "node:crypto";
+import * as path from "node:path";
 import picomatch from "picomatch";
 import { isKilled } from "@aaronmills263-byte/kill-switch";
 import { defaultMarkerRules, type HookRules } from "../rules.js";
 import { LocalFileStorage, type AuditEntry } from "../audit.js";
-import { loadConsumerRules } from "../config-loader.js";
+import { loadConsumerRules, findConsumerRoot } from "../config-loader.js";
 
 export interface ToolCallInput {
   tool_name: string;
@@ -29,8 +30,9 @@ export interface PreToolUseResult {
 export function handlePreToolUse(
   input: ToolCallInput,
   rules: HookRules = defaultMarkerRules,
-  options: { bypass?: boolean; sessionId?: string; isTest?: boolean } = {},
+  options: { bypass?: boolean; sessionId?: string; isTest?: boolean; consumerRoot?: string } = {},
 ): PreToolUseResult {
+  const consumerRoot = options.consumerRoot ?? process.cwd();
   const storage = new LocalFileStorage();
   const sessionId = options.sessionId ?? process.env.MARKER_SESSION_ID ?? "unknown";
   const isTest = options.isTest ?? process.env.MARKER_IS_TEST === "1";
@@ -67,7 +69,7 @@ export function handlePreToolUse(
   // Write or Edit tool — check protected and critical paths
   if (input.tool_name === "Write" || input.tool_name === "Edit") {
     const filePath = String(input.tool_input.file_path ?? input.tool_input.path ?? "");
-    return handleWriteCheck(filePath, rules);
+    return handleWriteCheck(filePath, rules, consumerRoot);
   }
 
   // All other tools — allow
@@ -100,11 +102,25 @@ function handleBashCheck(command: string, rules: HookRules): PreToolUseResult {
   return { exitCode: 0 };
 }
 
-function handleWriteCheck(filePath: string, rules: HookRules): PreToolUseResult {
+function normalizePath(filePath: string, consumerRoot: string): string {
+  if (path.isAbsolute(filePath)) {
+    const relative = path.relative(consumerRoot, filePath);
+    // If the file is outside consumer root, keep absolute
+    if (relative.startsWith("..")) {
+      return filePath;
+    }
+    return relative;
+  }
+  return filePath;
+}
+
+function handleWriteCheck(filePath: string, rules: HookRules, consumerRoot: string): PreToolUseResult {
+  const normalizedPath = normalizePath(filePath, consumerRoot);
+
   // Check protected paths — block with instruction to ask human
   for (const pattern of rules.protectedPaths) {
     const isMatch = picomatch(pattern);
-    if (isMatch(filePath)) {
+    if (isMatch(normalizedPath)) {
       return {
         exitCode: 2,
         message: `Blocked: ${filePath} matches protected path pattern "${pattern}". Ask the human for approval before modifying this file.`,
@@ -115,7 +131,7 @@ function handleWriteCheck(filePath: string, rules: HookRules): PreToolUseResult 
   // Check audit-critical paths — don't block, but flag
   for (const pattern of rules.auditCriticalPaths) {
     const isMatch = picomatch(pattern);
-    if (isMatch(filePath)) {
+    if (isMatch(normalizedPath)) {
       return {
         exitCode: 0,
         auditFlags: {
@@ -167,9 +183,10 @@ export async function main(): Promise<void> {
   const sessionId = typeof parsed.session_id === "string" ? parsed.session_id : undefined;
 
   // Load consumer config from .marker/config.ts (falls back to defaults)
-  const rules = await loadConsumerRules(process.cwd());
+  const consumerRoot = findConsumerRoot(process.cwd()) ?? process.cwd();
+  const rules = await loadConsumerRules(consumerRoot);
 
-  const result = handlePreToolUse(input, rules, { sessionId });
+  const result = handlePreToolUse(input, rules, { sessionId, consumerRoot });
 
   if (result.message) {
     if (result.exitCode === 0) {

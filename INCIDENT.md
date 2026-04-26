@@ -230,3 +230,78 @@ Consumers must update all `@marker/*` references to `@aaronmills263-byte/*` in t
 ## Lesson
 
 Choose your npm scope based on your publishing target from day one. If using GitHub Packages, the scope must match the repo owner. Renaming packages after consumers exist is a breaking change that ripples through every import statement and dependency declaration.
+
+---
+
+# Incident: marker-hooks install Clobbers Consumer .marker/config.ts with Stub
+
+## What was broken
+
+`marker-hooks install` always wrote `.marker/config.js` and `.marker/config.ts` stub files. When Mountain Marker re-installed v0.7.0 from GitHub Packages, the previously customised `config.ts` (with mountain-marker-specific `protectedPaths`) was overwritten with a defaults-only stub. Only framework defaults were loaded at runtime.
+
+## When discovered
+
+2026-04-25
+
+## Impact
+
+Any consuming repo that ran `marker-hooks install` a second time (e.g. after upgrading the hooks package) lost all consumer-specific rule customisations. The hook handler loaded the stub config, which just spread `defaultMarkerRules` with no overrides, silently reverting to framework defaults.
+
+## Root cause
+
+1. `generate.ts` checked if `.marker/config.js` existed before writing, but `.marker/config.ts` was always written unconditionally in an earlier version, and the current code only guarded `.js`.
+2. No logic distinguished between a fresh install and a reinstall where the consumer had already edited their config files.
+
+## Fix applied
+
+- `install()` now checks if `.marker/config.ts` OR `.marker/config.js` already exists. If either exists, both are left in place.
+- Only writes stub config files on true fresh installs (neither file exists).
+- Logs `[marker-hooks] .marker/config.ts already exists — leaving in place.` when skipping.
+- Bumped `@aaronmills263-byte/hooks` to `0.7.1`.
+
+## Remediation
+
+No consumer action required — this fix prevents future clobbering. Consumers who lost config in v0.7.0 must manually restore their `.marker/config.js` overrides.
+
+## Lesson
+
+Install commands must never overwrite consumer-edited files. Idempotent installs should only create files that don't exist yet.
+
+---
+
+# Incident: Hooks Didn't Block ANY Tool Calls — picomatch Fails on Absolute Paths
+
+## What was broken
+
+Default `protectedPaths` used relative patterns like `.env*` and `src/middleware.ts`. Claude Code's actual tool inputs use absolute paths like `/Users/aaron/ventures/mountain-marker/.env`. picomatch v4 returns `false` when matching relative patterns against absolute paths. Result: **no file path ever matched any rule**. The hooks were running but silently allowing everything.
+
+## When discovered
+
+2026-04-25 (Session 2c manual verification — exactly what 2c was designed to catch)
+
+## Impact
+
+Every consuming repo running `@aaronmills263-byte/hooks@0.7.0` had zero file-path enforcement. Protected paths, audit-critical paths — none matched. This affected both framework defaults and consumer-specific patterns like Mountain Marker's `src/lib/supabase.ts`.
+
+## Root cause
+
+1. `handleWriteCheck()` passed the raw `file_path` from tool input directly to picomatch without normalisation.
+2. Claude Code provides absolute paths in `tool_input.file_path` (e.g. `/Users/aaron/ventures/mountain-marker/.env`).
+3. picomatch v4 does not match relative glob patterns against absolute paths: `picomatch('.env*')('/Users/.../mountain-marker/.env')` → `false`.
+4. No test used absolute paths — all test fixtures used relative paths, so the unit tests passed while real-world matching was 100% broken.
+
+## Fix applied
+
+- Added `normalizePath()` to `pretooluse.ts`: if a file path is absolute and under the consumer root, it is converted to relative-from-consumer-root before matching. Paths outside consumer root are kept absolute (correct: external paths shouldn't trigger consumer rules).
+- `handlePreToolUse()` now accepts `consumerRoot` in options and passes it to `handleWriteCheck()`.
+- `main()` resolves consumer root via `findConsumerRoot()` and passes it through.
+- Added 5 regression tests covering: absolute path under root matches → blocked, absolute path under root no match → allowed, relative path matches → blocked (regression), absolute path outside root → allowed, glob pattern with absolute path → blocked.
+- Bumped `@aaronmills263-byte/hooks` to `0.7.1`.
+
+## Remediation
+
+Consuming repos must update to `@aaronmills263-byte/hooks@0.7.1`. No config changes needed — the fix is in the handler, not the config format.
+
+## Lesson
+
+Framework must normalise absolute paths to relative-from-consumer-root before matching. Critical: test fixtures must include real-world input formats (absolute paths from Claude Code), not just convenient relative paths. The regression test `absolute path under consumer root must match relative protected pattern` is the single most important test in the hooks package.

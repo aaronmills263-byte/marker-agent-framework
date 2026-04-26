@@ -73,9 +73,22 @@ exec node "${postCliPath}"
     fs.writeFileSync(gitignorePath, "# Marker agent hooks (local, not committed)\n.marker/\n");
   }
 
-  // 5. Write editable config files
-  // .js version is loaded at runtime by the hook handler (node can't import .ts)
-  const configJsContent = `// Marker hooks configuration — edit to override default rules.
+  // 5. Write editable config files (idempotent — never overwrite existing)
+  const configJsPath = path.join(markerDir, "config.js");
+  const configTsPath = path.join(markerDir, "config.ts");
+  const tsExists = fs.existsSync(configTsPath);
+  const jsExists = fs.existsSync(configJsPath);
+
+  if (tsExists) {
+    console.log(`[marker-hooks] .marker/config.ts already exists — leaving in place.`);
+  }
+  if (jsExists) {
+    console.log(`[marker-hooks] .marker/config.js already exists — leaving in place.`);
+  }
+
+  if (!tsExists && !jsExists) {
+    // Fresh install — write both stub files
+    const configJsContent = `// Marker hooks configuration — edit to override default rules.
 // This file is local to your repo and not committed to git.
 // The hook handler loads this at runtime via dynamic import.
 const { defaultMarkerRules } = require("@aaronmills263-byte/hooks");
@@ -86,13 +99,9 @@ exports.rules = {
   // protectedPaths: [...defaultMarkerRules.protectedPaths, "my-custom-path.ts"],
 };
 `;
-  const configJsPath = path.join(markerDir, "config.js");
-  if (!fs.existsSync(configJsPath)) {
     fs.writeFileSync(configJsPath, configJsContent, "utf-8");
-  }
 
-  // .ts version for reference / IDE support (not loaded at runtime)
-  const configTsContent = `// Marker hooks configuration — TypeScript reference.
+    const configTsContent = `// Marker hooks configuration — TypeScript reference.
 // Edit config.js for runtime changes. This file is for IDE support only.
 import { defaultMarkerRules, type HookRules } from "@aaronmills263-byte/hooks";
 
@@ -102,8 +111,6 @@ export const rules: HookRules = {
   // protectedPaths: [...defaultMarkerRules.protectedPaths, "my-custom-path.ts"],
 };
 `;
-  const configTsPath = path.join(markerDir, "config.ts");
-  if (!fs.existsSync(configTsPath)) {
     fs.writeFileSync(configTsPath, configTsContent, "utf-8");
   }
 
@@ -111,5 +118,7 @@ export const rules: HookRules = {
   console.log(`  - .marker/hooks/pretooluse.sh`);
   console.log(`  - .marker/hooks/posttooluse.sh`);
   console.log(`  - .claude/settings.json`);
-  console.log(`  - .marker/config.js (editable — loaded at runtime)`);
+  if (!tsExists && !jsExists) {
+    console.log(`  - .marker/config.js (editable — loaded at runtime)`);
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "@aaronmills263-byte/evals",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Promptfoo harness wrapper for Marker agent evals",
   "files": [
     "dist",

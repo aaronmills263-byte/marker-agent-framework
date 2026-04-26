@@ -1,6 +1,6 @@
 {
   "name": "@aaronmills263-byte/hooks",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Filesystem and Bash hooks for Marker agents",
   "files": [
     "dist",

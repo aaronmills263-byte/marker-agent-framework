@@ -150,6 +150,72 @@ describe("PreToolUse handler", () => {
     });
   });
 
+  describe("absolute path normalization", () => {
+    it("blocks absolute paths under consumer root that match relative protected patterns", () => {
+      const consumerRoot = "/Users/test/myproject";
+      const result = handlePreToolUse(
+        {
+          tool_name: "Write",
+          tool_input: { file_path: "/Users/test/myproject/.env" },
+        },
+        { ...defaultMarkerRules, protectedPaths: [".env*"] },
+        { consumerRoot },
+      );
+      expect(result.exitCode).toBe(2);
+    });
+
+    it("allows absolute paths under consumer root that don't match any pattern", () => {
+      const consumerRoot = "/Users/test/myproject";
+      const result = handlePreToolUse(
+        {
+          tool_name: "Write",
+          tool_input: { file_path: "/Users/test/myproject/src/components/Button.tsx" },
+        },
+        defaultMarkerRules,
+        { consumerRoot },
+      );
+      expect(result.exitCode).toBe(0);
+    });
+
+    it("blocks relative paths that match protected patterns (regression)", () => {
+      const result = handlePreToolUse(
+        {
+          tool_name: "Write",
+          tool_input: { file_path: ".env.local" },
+        },
+        defaultMarkerRules,
+      );
+      expect(result.exitCode).toBe(2);
+    });
+
+    it("does not match absolute paths outside consumer root against relative patterns", () => {
+      const consumerRoot = "/Users/test/myproject";
+      const result = handlePreToolUse(
+        {
+          tool_name: "Write",
+          tool_input: { file_path: "/Users/other/repo/.env" },
+        },
+        { ...defaultMarkerRules, protectedPaths: [".env*"] },
+        { consumerRoot },
+      );
+      // External path stays absolute, won't match relative pattern
+      expect(result.exitCode).toBe(0);
+    });
+
+    it("blocks absolute paths matching glob patterns under consumer root", () => {
+      const consumerRoot = "/Users/test/myproject";
+      const result = handlePreToolUse(
+        {
+          tool_name: "Write",
+          tool_input: { file_path: "/Users/test/myproject/src/app/api/stripe/webhook/route.ts" },
+        },
+        { ...defaultMarkerRules, protectedPaths: ["src/app/api/**/webhook/**"] },
+        { consumerRoot },
+      );
+      expect(result.exitCode).toBe(2);
+    });
+  });
+
   describe("Bash warn patterns", () => {
     it("allows but flags git push --force", () => {
       const input: ToolCallInput = {

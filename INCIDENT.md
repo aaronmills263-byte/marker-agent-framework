@@ -325,3 +325,22 @@ Even when a consumer has explicitly disabled hooks (e.g., renamed settings.json 
 Fix needed in v0.7.2: separate "install" (one-time setup) from "upgrade" (routine package update). Upgrades should never modify .claude/settings.json. Or: always check for .disabled-pending-fix and skip writing if present.
 
 Mitigation in production: after framework upgrades, verify .claude/settings.json hasn't been re-introduced if you intended hooks to stay disabled.
+
+## Incident #11 — Kill switch state file not read by isKilled() — broken cross-process
+
+Discovered during Session 2c manual kill drill. The kill-switch package writes state to ~/.marker/kill-switch.state correctly via killAll(). status() reads it correctly. BUT the hook handler calls isKilled() which only checks process.env.MARKER_AGENTS_KILLED — the state file is never consulted.
+
+Hook script flow: bash .marker/hooks/pretooluse.sh → exec node ./node_modules/@aaronmills263-byte/hooks/dist/handlers/pretooluse-cli.js → main() → isKilled() → checks env var → returns false (because env var didn't propagate from parent shell).
+
+Result: kill switch is non-functional cross-process. The mechanism works in single-process tests (where parent sets the env var, child inherits it) but FAILS in real-world deployment (where the hook spawns a fresh node process via shell exec).
+
+**This is the most safety-critical bug in the framework.** The kill switch is the circuit breaker. If it doesn't work cross-process, agents continue to operate after operator declares emergency stop.
+
+Fix needed in v0.7.2: isKilled() must check the state file as fallback when env var is absent. The state file check is more authoritative than the env var.
+
+Regression test needed: spawn a child process, write kill state, verify child sees killed=true. Distinct from in-process tests which the framework already has.
+
+For Marmalade: this kind of "works in tests, fails in production" failure is exactly what regulators look for in compliance audits. The lesson is that test scaffolding for safety mechanisms must mirror real deployment topology, not just unit-test scope.
+
+Discovered: 2026-04-25 night session, Mountain Marker manual drill.
+Fix priority: high — blocks ability to safely operate framework v0.7.1 in production.

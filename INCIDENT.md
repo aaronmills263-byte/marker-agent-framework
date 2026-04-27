@@ -399,3 +399,33 @@ Auditors can now distinguish:
 - Kill switch active -> tool didn't run (matched pre-killed + post-actuallyExecuted=false)
 
 Lesson codified: every decision the framework makes must produce an audit record. "Pre-hook decides, post-hook records" was too simple — both sides participate in the audit story. For regulatory consumers (Marmalade), this is non-negotiable.
+
+---
+
+## Incident #13 — Audit log writes lost in production due to fire-and-forget async pattern
+
+Discovered during Session 2c+ verification of v0.7.3 audit log integrity fix (2026-04-26 night session).
+
+The v0.7.3 fix added `storage.append(entry)` calls to every pre-hook decision branch. All calls follow the pattern:
+
+```javascript
+storage.append(entry).catch(() => {});
+return { exitCode: 2, ... };
+```
+
+This is fire-and-forget: the promise is created but never awaited. The CLI's `main()` then calls `process.exit(result.exitCode)` and node terminates **before the async write completes**. Audit entries silently vanish.
+
+Confirmed empirically: framework's own test suite (`pnpm test`) produces audit entries because vitest's process is long-lived and promises resolve. Real consumer CLI invocations (via `bash hook.sh` or direct `node handler.js`) produce ZERO audit entries despite all other behaviour (exit codes, block messages) being correct.
+
+**Root cause**: `LocalFileStorage.append()` is declared `async` but the only actual async work is `await this.rotateIfNeeded()`. The actual write uses synchronous `fs.appendFileSync`. The async wrapper is unnecessary — and worse, it imposes a contract that callers must await, which v0.7.3 explicitly bypasses with `.catch(() => {})`.
+
+**Fix needed in v0.7.4**:
+- Make `append()` synchronous (rename to `appendSync` or just remove the async). Since `appendFileSync` is already used, no behaviour change.
+- Make `rotateIfNeeded` synchronous too (uses fs.statSync/renameSync internally; no real async work).
+- Update all callers to drop `.catch(() => {})` and `await`.
+- Add a regression test that runs the handler in a true child process via `spawn` and verifies the audit entry is on disk after the child exits.
+
+**Meta-pattern lesson**: The framework's test suite has caught zero of the last three audit/safety bugs (Incidents #11, #12, #13) discovered in production. All three were caught only by manual end-to-end testing in Mountain Marker. The test suite runs within a long-lived process where promises resolve and processes don't exit; production has CLI processes that exit immediately. **Tests must mirror real deployment topology.** For Marmalade: this means production-shaped integration tests are mandatory, not optional. The unit test scope is insufficient for safety-critical infrastructure.
+
+**Discovered**: 2026-04-26 night session, Mountain Marker manual audit log inspection.
+**Fix priority**: critical — without this, the audit log doesn't reflect production activity, which makes the entire framework's compliance posture unprovable.

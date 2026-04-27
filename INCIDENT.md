@@ -387,3 +387,15 @@ The audit log at ~/.marker/audit.log contains 13 entries showing `rm -rf /` with
 
 **Discovered**: 2026-04-26 night session, Mountain Marker manual audit log inspection.
 **Fix priority**: high — blocks defensible compliance posture for any regulated consumer of the framework.
+
+### Resolution (v0.7.3)
+
+All audit entries now include `phase: 'pre' | 'post'`, `callId` (sessionId + ":" + timestamp pseudo-pairing), and pre-hook decisions are explicitly recorded with `preHookDecision` field. Post-hook entries include `actuallyExecuted` derived from whether Claude Code passed an `exit_status` (proxy for "did the tool actually run").
+
+Auditors can now distinguish:
+- Pre-hook allowed -> tool ran (matched pre-allowed + post-actuallyExecuted=true)
+- Pre-hook blocked -> tool didn't run (matched pre-blocked + post-actuallyExecuted=false)
+- Pre-hook bypassed -> tool ran with override (matched pre-bypassed + post-actuallyExecuted=true)
+- Kill switch active -> tool didn't run (matched pre-killed + post-actuallyExecuted=false)
+
+Lesson codified: every decision the framework makes must produce an audit record. "Pre-hook decides, post-hook records" was too simple — both sides participate in the audit story. For regulatory consumers (Marmalade), this is non-negotiable.

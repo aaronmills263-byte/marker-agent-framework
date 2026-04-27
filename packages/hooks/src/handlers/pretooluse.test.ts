@@ -1,18 +1,27 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import * as os from "node:os";
 import { handlePreToolUse, type ToolCallInput } from "./pretooluse.js";
 import { defaultMarkerRules, type HookRules } from "../rules.js";
-import { killAll, reset } from "@aaronmills263-byte/kill-switch";
+import { killAll, reset, STATE_FILE_PATH } from "@aaronmills263-byte/kill-switch";
 
 describe("PreToolUse handler", () => {
   beforeEach(() => {
     delete process.env.HOOKS_BYPASS;
     delete process.env.MARKER_AGENTS_KILLED;
+    // Clear state file that may have been written by parallel test files
+    if (fs.existsSync(STATE_FILE_PATH)) {
+      fs.unlinkSync(STATE_FILE_PATH);
+    }
   });
 
   afterEach(() => {
     delete process.env.HOOKS_BYPASS;
     delete process.env.MARKER_AGENTS_KILLED;
-    reset("test cleanup");
+    if (fs.existsSync(STATE_FILE_PATH)) {
+      fs.unlinkSync(STATE_FILE_PATH);
+    }
   });
 
   describe("writes to protected paths", () => {
@@ -225,6 +234,125 @@ describe("PreToolUse handler", () => {
       const result = handlePreToolUse(input);
       expect(result.exitCode).toBe(0);
       expect(result.auditFlags?.warning).toContain("warn pattern");
+    });
+  });
+
+  describe("pre-hook audit entries", () => {
+    let tmpDir: string;
+    let origHome: string | undefined;
+
+    beforeEach(() => {
+      tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "marker-pre-audit-"));
+      origHome = process.env.HOME;
+      process.env.HOME = tmpDir;
+    });
+
+    afterEach(() => {
+      process.env.HOME = origHome;
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    function readAuditEntries(): any[] {
+      const logPath = path.join(tmpDir, ".marker", "audit.log");
+      if (!fs.existsSync(logPath)) return [];
+      return fs.readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
+    }
+
+    // Pre-hook audit writes are fire-and-forget (.catch(() => {})).
+    // The underlying fs ops are sync, but the async wrapper defers to microtask queue.
+    const tick = () => new Promise((r) => setTimeout(r, 10));
+
+    it("writes phase:'pre' entry with preHookDecision:'allowed' for normal tool calls", async () => {
+      handlePreToolUse(
+        { tool_name: "Read", tool_input: { file_path: "README.md" } },
+        defaultMarkerRules,
+        { sessionId: "s1", isTest: true },
+      );
+      await tick();
+      const entries = readAuditEntries();
+      expect(entries).toHaveLength(1);
+      expect(entries[0].phase).toBe("pre");
+      expect(entries[0].preHookDecision).toBe("allowed");
+      expect(entries[0].callId).toContain("s1:");
+    });
+
+    it("writes preHookDecision:'blocked' for bash deny", async () => {
+      handlePreToolUse(
+        { tool_name: "Bash", tool_input: { command: "rm -rf /" } },
+        defaultMarkerRules,
+        { sessionId: "s1", isTest: true },
+      );
+      await tick();
+      const entries = readAuditEntries();
+      expect(entries).toHaveLength(1);
+      expect(entries[0].preHookDecision).toBe("blocked");
+      expect(entries[0].blockReason).toContain("deny pattern");
+    });
+
+    it("writes preHookDecision:'blocked' for protected paths", async () => {
+      handlePreToolUse(
+        { tool_name: "Write", tool_input: { file_path: ".env" } },
+        defaultMarkerRules,
+        { sessionId: "s1", isTest: true },
+      );
+      await tick();
+      const entries = readAuditEntries();
+      expect(entries).toHaveLength(1);
+      expect(entries[0].preHookDecision).toBe("blocked");
+      expect(entries[0].blockReason).toContain("protected path");
+    });
+
+    it("writes preHookDecision:'critical-path' for audit-critical paths", async () => {
+      handlePreToolUse(
+        { tool_name: "Write", tool_input: { file_path: "src/app/api/users/route.ts" } },
+        defaultMarkerRules,
+        { sessionId: "s1", isTest: true },
+      );
+      await tick();
+      const entries = readAuditEntries();
+      expect(entries).toHaveLength(1);
+      expect(entries[0].preHookDecision).toBe("critical-path");
+      expect(entries[0].auditFlags?.isCriticalPath).toBe(true);
+    });
+
+    it("writes preHookDecision:'bypassed' when bypass is active", async () => {
+      handlePreToolUse(
+        { tool_name: "Write", tool_input: { file_path: ".env" } },
+        defaultMarkerRules,
+        { bypass: true, sessionId: "s1", isTest: true },
+      );
+      await tick();
+      const entries = readAuditEntries();
+      expect(entries).toHaveLength(1);
+      expect(entries[0].preHookDecision).toBe("bypassed");
+      expect(entries[0].bypass).toBe(true);
+    });
+
+    it("writes preHookDecision:'killed' when kill switch is active", async () => {
+      process.env.MARKER_AGENTS_KILLED = "1";
+      handlePreToolUse(
+        { tool_name: "Read", tool_input: { file_path: "README.md" } },
+        defaultMarkerRules,
+        { sessionId: "s1", isTest: true },
+      );
+      await tick();
+      const entries = readAuditEntries();
+      expect(entries).toHaveLength(1);
+      expect(entries[0].preHookDecision).toBe("killed");
+      expect(entries[0].blockReason).toBe("Kill switch active");
+    });
+
+    it("writes preHookDecision:'allowed' with auditFlags for bash warn patterns", async () => {
+      handlePreToolUse(
+        { tool_name: "Bash", tool_input: { command: "git push --force origin main" } },
+        defaultMarkerRules,
+        { sessionId: "s1", isTest: true },
+      );
+      await tick();
+      const entries = readAuditEntries();
+      expect(entries).toHaveLength(1);
+      expect(entries[0].preHookDecision).toBe("allowed");
+      expect(entries[0].auditFlags?.warning).toContain("warn pattern");
     });
   });
 });

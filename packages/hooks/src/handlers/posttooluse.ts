@@ -21,16 +21,20 @@ export async function handlePostToolUse(
   const isTest = options.isTest ?? process.env.MARKER_IS_TEST === "1";
 
   const target = extractTarget(input);
+  const timestamp = new Date().toISOString();
   const diffHash = input.tool_output
     ? crypto.createHash("sha256").update(input.tool_output).digest("hex").slice(0, 16)
     : undefined;
 
   const entry: AuditEntry = {
-    timestamp: new Date().toISOString(),
+    timestamp,
+    callId: `${sessionId}:${timestamp}`,
+    phase: "post",
     tool: input.tool_name,
     target,
     diffHash,
     exitStatus: input.exit_status ?? 0,
+    actuallyExecuted: input.exit_status !== undefined && input.exit_status !== null,
     sessionId,
     ...(isTest ? { isTest: true } : {}),
   };

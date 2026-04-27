@@ -20,8 +20,11 @@ describe("LocalFileStorage", () => {
   });
 
   function makeEntry(overrides: Partial<AuditEntry> = {}): AuditEntry {
+    const timestamp = new Date().toISOString();
     return {
-      timestamp: new Date().toISOString(),
+      timestamp,
+      callId: `test-session:${timestamp}`,
+      phase: "post",
       tool: "Bash",
       target: "echo hello",
       exitStatus: 0,

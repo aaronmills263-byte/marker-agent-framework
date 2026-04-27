@@ -3,14 +3,23 @@ import * as path from "node:path";
 
 export interface AuditEntry {
   timestamp: string;
+  callId: string; // sessionId + ":" + timestamp — pairs pre/post entries
+  phase: "pre" | "post";
   tool: string;
   target: string;
-  diffHash?: string;
-  exitStatus: number;
   sessionId: string;
+  // Pre-hook fields
+  preHookDecision?: "allowed" | "blocked" | "critical-path" | "bypassed" | "killed";
+  blockReason?: string;
+  // Post-hook fields
+  exitStatus?: number;
+  diffHash?: string;
+  actuallyExecuted?: boolean; // false if pre-hook blocked, derived from exit_status presence
+  // Existing optional fields
   bypass?: boolean;
   warning?: string;
   isTest?: boolean;
+  auditFlags?: { isCriticalPath?: boolean; warning?: string };
 }
 
 export interface AuditFilter {

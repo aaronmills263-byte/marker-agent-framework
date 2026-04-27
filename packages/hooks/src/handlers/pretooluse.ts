@@ -37,23 +37,34 @@ export function handlePreToolUse(
   const sessionId = options.sessionId ?? process.env.MARKER_SESSION_ID ?? "unknown";
   const isTest = options.isTest ?? process.env.MARKER_IS_TEST === "1";
 
-  // HOOKS_BYPASS — allow but audit
-  if (options.bypass || process.env.HOOKS_BYPASS === "1") {
+  const timestamp = new Date().toISOString();
+  const callId = `${sessionId}:${timestamp}`;
+  const target = extractTarget(input);
+
+  function writePreAudit(decision: AuditEntry["preHookDecision"], extra: Partial<AuditEntry> = {}): void {
     const entry: AuditEntry = {
-      timestamp: new Date().toISOString(),
+      timestamp,
+      callId,
+      phase: "pre",
       tool: input.tool_name,
-      target: extractTarget(input),
-      exitStatus: 0,
+      target,
       sessionId,
-      bypass: true,
+      preHookDecision: decision,
       ...(isTest ? { isTest: true } : {}),
+      ...extra,
     };
     storage.append(entry).catch(() => {});
+  }
+
+  // HOOKS_BYPASS — allow but audit
+  if (options.bypass || process.env.HOOKS_BYPASS === "1") {
+    writePreAudit("bypassed", { bypass: true });
     return { exitCode: 0, message: "Bypassed (HOOKS_BYPASS=1)" };
   }
 
   // Kill switch check
   if (isKilled()) {
+    writePreAudit("killed", { blockReason: "Kill switch active" });
     return {
       exitCode: 2,
       message: "Agent infrastructure is killed. No tool calls permitted.",
@@ -63,16 +74,33 @@ export function handlePreToolUse(
   // Bash tool — check deny then warn patterns
   if (input.tool_name === "Bash") {
     const command = String(input.tool_input.command ?? "");
-    return handleBashCheck(command, rules);
+    const result = handleBashCheck(command, rules);
+    if (result.exitCode === 2) {
+      writePreAudit("blocked", { blockReason: result.message });
+    } else if (result.auditFlags?.warning) {
+      writePreAudit("allowed", { auditFlags: result.auditFlags });
+    } else {
+      writePreAudit("allowed");
+    }
+    return result;
   }
 
   // Write or Edit tool — check protected and critical paths
   if (input.tool_name === "Write" || input.tool_name === "Edit") {
     const filePath = String(input.tool_input.file_path ?? input.tool_input.path ?? "");
-    return handleWriteCheck(filePath, rules, consumerRoot);
+    const result = handleWriteCheck(filePath, rules, consumerRoot);
+    if (result.exitCode === 2) {
+      writePreAudit("blocked", { blockReason: result.message });
+    } else if (result.auditFlags?.isCriticalPath) {
+      writePreAudit("critical-path", { auditFlags: result.auditFlags });
+    } else {
+      writePreAudit("allowed");
+    }
+    return result;
   }
 
   // All other tools — allow
+  writePreAudit("allowed");
   return { exitCode: 0 };
 }
 

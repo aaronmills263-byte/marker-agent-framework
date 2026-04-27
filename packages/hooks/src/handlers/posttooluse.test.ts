@@ -40,6 +40,9 @@ describe("PostToolUse handler", () => {
     expect(entry.timestamp).toBeTruthy();
     expect(entry.diffHash).toBeTruthy();
     expect(entry.diffHash).toHaveLength(16);
+    expect(entry.phase).toBe("post");
+    expect(entry.callId).toBeTruthy();
+    expect(entry.actuallyExecuted).toBe(true);
   });
 
   it("writes a well-formed JSONL entry for Write", async () => {
@@ -71,6 +74,22 @@ describe("PostToolUse handler", () => {
     const entry = JSON.parse(raw);
 
     expect(entry.diffHash).toBeUndefined();
+  });
+
+  it("sets actuallyExecuted=false when exit_status is undefined (blocked call)", async () => {
+    const input: PostToolUseInput = {
+      tool_name: "Bash",
+      tool_input: { command: "rm -rf /" },
+      // no exit_status — pre-hook blocked the call
+    };
+
+    await handlePostToolUse(input, { sessionId: "test-session", storage });
+
+    const raw = fs.readFileSync(logPath, "utf-8").trim();
+    const entry = JSON.parse(raw);
+
+    expect(entry.phase).toBe("post");
+    expect(entry.actuallyExecuted).toBe(false);
   });
 
   it("appends multiple entries as JSONL", async () => {

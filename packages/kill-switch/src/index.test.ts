@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import * as fs from "node:fs";
+import * as path from "node:path";
+import { spawn } from "node:child_process";
 import { isKilled, killAll, reset, status, STATE_FILE_PATH } from "./index.js";
+
+// Child processes use the compiled JS (not vitest's TS transform)
+const DIST_INDEX = path.resolve(__dirname, "../dist/index.js");
 
 describe("@aaronmills263-byte/kill-switch", () => {
   beforeEach(() => {
@@ -112,6 +117,66 @@ describe("@aaronmills263-byte/kill-switch", () => {
       const result = reset("cleanup");
       expect(result.success).toBe(true);
       expect(result.reason).toBe("cleanup");
+    });
+  });
+
+  describe("isKilled — state file fallback (in-process)", () => {
+    it("returns true from state file when env var is absent", () => {
+      killAll("file-only test");
+      delete process.env.MARKER_AGENTS_KILLED;
+      // env var gone, but state file still exists
+      expect(isKilled()).toBe(true);
+    });
+
+    it("returns false when state file is malformed", () => {
+      fs.mkdirSync(require("node:path").dirname(STATE_FILE_PATH), {
+        recursive: true,
+      });
+      fs.writeFileSync(STATE_FILE_PATH, "NOT JSON", "utf-8");
+      expect(isKilled()).toBe(false);
+    });
+  });
+
+  describe("isKilled — cross-process behaviour", () => {
+    function runChildIsKilled(env: NodeJS.ProcessEnv): Promise<string> {
+      return new Promise((resolve) => {
+        const child = spawn(
+          process.execPath,
+          [
+            "-e",
+            `const { isKilled } = require("${DIST_INDEX.replace(/\\/g, "/")}");
+             console.log(isKilled() ? "KILLED" : "ALIVE");`,
+          ],
+          { env },
+        );
+        let stdout = "";
+        child.stdout.on("data", (chunk: Buffer) => (stdout += chunk));
+        child.on("close", () => resolve(stdout.trim()));
+      });
+    }
+
+    it("child process sees killed=true via state file when env var didn't propagate", async () => {
+      killAll("regression test for cross-process");
+      expect(isKilled()).toBe(true);
+
+      // Spawn child WITHOUT inheriting MARKER_AGENTS_KILLED
+      const cleanEnv = { ...process.env };
+      delete cleanEnv.MARKER_AGENTS_KILLED;
+
+      const result = await runChildIsKilled(cleanEnv);
+      expect(result).toBe("KILLED");
+    });
+
+    it("child process sees killed=false after reset", async () => {
+      killAll("temp");
+      reset("test cleanup");
+      expect(isKilled()).toBe(false);
+
+      const cleanEnv = { ...process.env };
+      delete cleanEnv.MARKER_AGENTS_KILLED;
+
+      const result = await runChildIsKilled(cleanEnv);
+      expect(result).toBe("ALIVE");
     });
   });
 });

@@ -28,12 +28,31 @@ interface StateFileData {
 /**
  * Check whether the kill switch has been activated.
  *
- * Checks the MARKER_AGENTS_KILLED env var first (cheap, no I/O).
- * This is what every agent calls at runtime before taking any action.
+ * Two-channel check:
+ *   1. MARKER_AGENTS_KILLED env var (fast, in-process kills)
+ *   2. ~/.marker/kill-switch.state file (cross-process kills — required when
+ *      hooks are invoked via shell exec spawning fresh node processes)
+ *
+ * Never throws. Returns false on any error (graceful degradation: a broken
+ * kill switch is operator-visible via status() and can be manually overridden,
+ * but a thrown error would crash the hook handler entirely, which would be
+ * worse).
  */
 export function isKilled(): boolean {
+  // Fast path: env var (in-process kills, no I/O)
   const envVal = process.env.MARKER_AGENTS_KILLED;
-  return envVal === "1" || envVal === "true";
+  if (envVal === "1" || envVal === "true") return true;
+
+  // Slow path: state file (cross-process kills)
+  try {
+    if (!fs.existsSync(STATE_FILE)) return false;
+    const raw = fs.readFileSync(STATE_FILE, "utf-8");
+    const state = JSON.parse(raw);
+    return state.killed === true;
+  } catch {
+    // Malformed file, permission error, etc. — never throw from isKilled
+    return false;
+  }
 }
 
 /**

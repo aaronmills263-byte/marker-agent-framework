@@ -344,3 +344,18 @@ For Marmalade: this kind of "works in tests, fails in production" failure is exa
 
 Discovered: 2026-04-25 night session, Mountain Marker manual drill.
 Fix priority: high — blocks ability to safely operate framework v0.7.1 in production.
+
+### Resolution (v0.7.2)
+
+isKilled() now checks both the MARKER_AGENTS_KILLED env var (fast path,
+in-process kills) AND the ~/.marker/kill-switch.state file (slow path,
+cross-process kills). The state-file check uses synchronous fs.existsSync
+and fs.readFileSync to maintain isKilled()'s synchronous contract.
+
+Regression test added: spawns a child node process WITHOUT inheriting
+MARKER_AGENTS_KILLED, verifies child sees killed=true via state file alone.
+This test would have caught the v0.7.1 bug.
+
+Lesson codified: safety-mechanism tests must mirror real deployment topology.
+Synthetic in-process tests pass while real cross-process behaviour fails when
+the test scaffolding doesn't match production process boundaries.

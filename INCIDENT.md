@@ -359,3 +359,31 @@ This test would have caught the v0.7.1 bug.
 Lesson codified: safety-mechanism tests must mirror real deployment topology.
 Synthetic in-process tests pass while real cross-process behaviour fails when
 the test scaffolding doesn't match production process boundaries.
+
+---
+
+## Incident #12 — Audit log doesn't reflect pre-hook decisions; misleading entries
+
+Discovered during Session 2c+ audit log verification (2026-04-26 night session).
+
+The audit log at ~/.marker/audit.log contains 13 entries showing `rm -rf /` with `exitStatus: 0` over the past week, all with the same `diffHash`. On first inspection this looked like the framework had failed to block 13 dangerous commands. Direct testing confirmed the pre-hook DOES block `rm -rf /` correctly with exit code 2 and the proper message. So what created those entries?
+
+**Root cause**: Claude Code (or the framework's hook config) fires the PostToolUse hook even when PreToolUse blocked the call. The post-hook handler in `posttooluse.js` then writes an audit entry with no awareness that the call was blocked. Default `exitStatus: 0` is logged. The entry looks like the command ran successfully.
+
+**Architectural problem**: audit log entries are written by post-hook only. Pre-hook decisions (block/allow/critical-path-flagged) are not recorded. Result:
+- Blocked calls appear identical to allowed calls
+- An auditor cannot determine from the log what the framework actually permitted vs prevented
+- Regulatory implication: the framework cannot prove its enforcement record from the audit log alone
+
+**For Marmalade**: this is exactly the kind of audit-trail gap that fails compliance audits. A regulator looking at "agent attempted X, log says X completed with exit 0" would conclude X ran. If the framework actually blocked X, that's a defensible action — but the log doesn't show it.
+
+**Fix needed in v0.7.3**:
+- Pre-hook should write an audit entry recording its decision (allowed/blocked/critical-path/bypassed)
+- Post-hook should be aware whether pre-hook blocked (if blocked, either don't log, or log explicitly as "post-hook fired after blocked call" with that context)
+- Audit entries should include explicit `preHookDecision` field
+- Each entry should also include `actuallyExecuted: boolean` so an auditor can distinguish "tool was permitted and ran" from "tool was permitted but failed for unrelated reasons"
+
+**Lesson codified**: audit logs that conflate "tool attempt occurred" with "tool execution succeeded" are regulatory liabilities. The mental model "pre-hook decides, post-hook records" is too simple — both sides of the framework need to participate in the audit record so that the log shows what the framework decided AND what actually happened.
+
+**Discovered**: 2026-04-26 night session, Mountain Marker manual audit log inspection.
+**Fix priority**: high — blocks defensible compliance posture for any regulated consumer of the framework.

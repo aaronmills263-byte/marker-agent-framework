@@ -12,10 +12,10 @@ export interface PostToolUseInput {
  * PostToolUse handler — fires after every tool call completes.
  * Appends a JSONL audit entry. Never blocks.
  */
-export async function handlePostToolUse(
+export function handlePostToolUse(
   input: PostToolUseInput,
   options: { sessionId?: string; storage?: LocalFileStorage; isTest?: boolean } = {},
-): Promise<void> {
+): void {
   const storage = options.storage ?? new LocalFileStorage();
   const sessionId = options.sessionId ?? process.env.MARKER_SESSION_ID ?? "unknown";
   const isTest = options.isTest ?? process.env.MARKER_IS_TEST === "1";
@@ -39,7 +39,11 @@ export async function handlePostToolUse(
     ...(isTest ? { isTest: true } : {}),
   };
 
-  await storage.append(entry);
+  try {
+    storage.append(entry);
+  } catch {
+    // Silently degrade — audit failure should not crash hook
+  }
 }
 
 function extractTarget(input: PostToolUseInput): string {
@@ -81,5 +85,5 @@ export async function main(): Promise<void> {
   // Extract session_id from the JSON payload if present
   const sessionId = typeof parsed.session_id === "string" ? parsed.session_id : undefined;
 
-  await handlePostToolUse(input, { sessionId });
+  handlePostToolUse(input, { sessionId });
 }

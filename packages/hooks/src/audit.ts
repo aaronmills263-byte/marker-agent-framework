@@ -31,8 +31,8 @@ export interface AuditFilter {
 }
 
 export interface AuditStorage {
-  append(entry: AuditEntry): Promise<void>;
-  query(filter: AuditFilter): Promise<AuditEntry[]>;
+  append(entry: AuditEntry): void;
+  query(filter: AuditFilter): AuditEntry[];
 }
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -43,20 +43,20 @@ export class LocalFileStorage implements AuditStorage {
 
   constructor(logPath?: string) {
     const dir = path.join(process.env.HOME ?? "/tmp", ".marker");
-    this.logPath = logPath ?? path.join(dir, "audit.log");
+    this.logPath = logPath ?? process.env.MARKER_AUDIT_LOG_PATH ?? path.join(dir, "audit.log");
   }
 
-  async append(entry: AuditEntry): Promise<void> {
+  append(entry: AuditEntry): void {
     const dir = path.dirname(this.logPath);
     fs.mkdirSync(dir, { recursive: true });
 
-    await this.rotateIfNeeded();
+    this.rotateIfNeeded();
 
     const line = JSON.stringify(entry) + "\n";
     fs.appendFileSync(this.logPath, line, "utf-8");
   }
 
-  async query(filter: AuditFilter): Promise<AuditEntry[]> {
+  query(filter: AuditFilter): AuditEntry[] {
     if (!fs.existsSync(this.logPath)) {
       return [];
     }
@@ -88,7 +88,7 @@ export class LocalFileStorage implements AuditStorage {
     return entries;
   }
 
-  private async rotateIfNeeded(): Promise<void> {
+  private rotateIfNeeded(): void {
     if (!fs.existsSync(this.logPath)) return;
 
     const stat = fs.statSync(this.logPath);

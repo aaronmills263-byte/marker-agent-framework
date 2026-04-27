@@ -20,7 +20,7 @@ describe("PostToolUse handler", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("writes a well-formed JSONL entry for Bash", async () => {
+  it("writes a well-formed JSONL entry for Bash", () => {
     const input: PostToolUseInput = {
       tool_name: "Bash",
       tool_input: { command: "ls -la" },
@@ -28,7 +28,7 @@ describe("PostToolUse handler", () => {
       exit_status: 0,
     };
 
-    await handlePostToolUse(input, { sessionId: "test-session", storage });
+    handlePostToolUse(input, { sessionId: "test-session", storage });
 
     const raw = fs.readFileSync(logPath, "utf-8").trim();
     const entry = JSON.parse(raw);
@@ -45,7 +45,7 @@ describe("PostToolUse handler", () => {
     expect(entry.actuallyExecuted).toBe(true);
   });
 
-  it("writes a well-formed JSONL entry for Write", async () => {
+  it("writes a well-formed JSONL entry for Write", () => {
     const input: PostToolUseInput = {
       tool_name: "Write",
       tool_input: { file_path: "src/index.ts" },
@@ -53,7 +53,7 @@ describe("PostToolUse handler", () => {
       exit_status: 0,
     };
 
-    await handlePostToolUse(input, { sessionId: "test-session", storage });
+    handlePostToolUse(input, { sessionId: "test-session", storage });
 
     const raw = fs.readFileSync(logPath, "utf-8").trim();
     const entry = JSON.parse(raw);
@@ -62,13 +62,13 @@ describe("PostToolUse handler", () => {
     expect(entry.target).toBe("src/index.ts");
   });
 
-  it("handles missing tool_output gracefully", async () => {
+  it("handles missing tool_output gracefully", () => {
     const input: PostToolUseInput = {
       tool_name: "Read",
       tool_input: { file_path: "README.md" },
     };
 
-    await handlePostToolUse(input, { sessionId: "test-session", storage });
+    handlePostToolUse(input, { sessionId: "test-session", storage });
 
     const raw = fs.readFileSync(logPath, "utf-8").trim();
     const entry = JSON.parse(raw);
@@ -76,14 +76,14 @@ describe("PostToolUse handler", () => {
     expect(entry.diffHash).toBeUndefined();
   });
 
-  it("sets actuallyExecuted=false when exit_status is undefined (blocked call)", async () => {
+  it("sets actuallyExecuted=false when exit_status is undefined (blocked call)", () => {
     const input: PostToolUseInput = {
       tool_name: "Bash",
       tool_input: { command: "rm -rf /" },
       // no exit_status — pre-hook blocked the call
     };
 
-    await handlePostToolUse(input, { sessionId: "test-session", storage });
+    handlePostToolUse(input, { sessionId: "test-session", storage });
 
     const raw = fs.readFileSync(logPath, "utf-8").trim();
     const entry = JSON.parse(raw);
@@ -92,12 +92,12 @@ describe("PostToolUse handler", () => {
     expect(entry.actuallyExecuted).toBe(false);
   });
 
-  it("appends multiple entries as JSONL", async () => {
-    await handlePostToolUse(
+  it("appends multiple entries as JSONL", () => {
+    handlePostToolUse(
       { tool_name: "Bash", tool_input: { command: "echo 1" }, exit_status: 0 },
       { sessionId: "s1", storage },
     );
-    await handlePostToolUse(
+    handlePostToolUse(
       { tool_name: "Bash", tool_input: { command: "echo 2" }, exit_status: 0 },
       { sessionId: "s1", storage },
     );

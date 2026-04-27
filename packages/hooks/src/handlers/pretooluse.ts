@@ -53,7 +53,11 @@ export function handlePreToolUse(
       ...(isTest ? { isTest: true } : {}),
       ...extra,
     };
-    storage.append(entry).catch(() => {});
+    try {
+      storage.append(entry);
+    } catch {
+      // Silently degrade — audit failure should not crash hook
+    }
   }
 
   // HOOKS_BYPASS — allow but audit

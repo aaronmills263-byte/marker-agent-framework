@@ -258,17 +258,12 @@ describe("PreToolUse handler", () => {
       return fs.readFileSync(logPath, "utf-8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
     }
 
-    // Pre-hook audit writes are fire-and-forget (.catch(() => {})).
-    // The underlying fs ops are sync, but the async wrapper defers to microtask queue.
-    const tick = () => new Promise((r) => setTimeout(r, 10));
-
-    it("writes phase:'pre' entry with preHookDecision:'allowed' for normal tool calls", async () => {
+    it("writes phase:'pre' entry with preHookDecision:'allowed' for normal tool calls", () => {
       handlePreToolUse(
         { tool_name: "Read", tool_input: { file_path: "README.md" } },
         defaultMarkerRules,
         { sessionId: "s1", isTest: true },
       );
-      await tick();
       const entries = readAuditEntries();
       expect(entries).toHaveLength(1);
       expect(entries[0].phase).toBe("pre");
@@ -276,79 +271,73 @@ describe("PreToolUse handler", () => {
       expect(entries[0].callId).toContain("s1:");
     });
 
-    it("writes preHookDecision:'blocked' for bash deny", async () => {
+    it("writes preHookDecision:'blocked' for bash deny", () => {
       handlePreToolUse(
         { tool_name: "Bash", tool_input: { command: "rm -rf /" } },
         defaultMarkerRules,
         { sessionId: "s1", isTest: true },
       );
-      await tick();
       const entries = readAuditEntries();
       expect(entries).toHaveLength(1);
       expect(entries[0].preHookDecision).toBe("blocked");
       expect(entries[0].blockReason).toContain("deny pattern");
     });
 
-    it("writes preHookDecision:'blocked' for protected paths", async () => {
+    it("writes preHookDecision:'blocked' for protected paths", () => {
       handlePreToolUse(
         { tool_name: "Write", tool_input: { file_path: ".env" } },
         defaultMarkerRules,
         { sessionId: "s1", isTest: true },
       );
-      await tick();
       const entries = readAuditEntries();
       expect(entries).toHaveLength(1);
       expect(entries[0].preHookDecision).toBe("blocked");
       expect(entries[0].blockReason).toContain("protected path");
     });
 
-    it("writes preHookDecision:'critical-path' for audit-critical paths", async () => {
+    it("writes preHookDecision:'critical-path' for audit-critical paths", () => {
       handlePreToolUse(
         { tool_name: "Write", tool_input: { file_path: "src/app/api/users/route.ts" } },
         defaultMarkerRules,
         { sessionId: "s1", isTest: true },
       );
-      await tick();
       const entries = readAuditEntries();
       expect(entries).toHaveLength(1);
       expect(entries[0].preHookDecision).toBe("critical-path");
       expect(entries[0].auditFlags?.isCriticalPath).toBe(true);
     });
 
-    it("writes preHookDecision:'bypassed' when bypass is active", async () => {
+    it("writes preHookDecision:'bypassed' when bypass is active", () => {
       handlePreToolUse(
         { tool_name: "Write", tool_input: { file_path: ".env" } },
         defaultMarkerRules,
         { bypass: true, sessionId: "s1", isTest: true },
       );
-      await tick();
       const entries = readAuditEntries();
       expect(entries).toHaveLength(1);
       expect(entries[0].preHookDecision).toBe("bypassed");
       expect(entries[0].bypass).toBe(true);
     });
 
-    it("writes preHookDecision:'killed' when kill switch is active", async () => {
+    it("writes preHookDecision:'killed' when kill switch is active", () => {
       process.env.MARKER_AGENTS_KILLED = "1";
       handlePreToolUse(
         { tool_name: "Read", tool_input: { file_path: "README.md" } },
         defaultMarkerRules,
         { sessionId: "s1", isTest: true },
       );
-      await tick();
       const entries = readAuditEntries();
       expect(entries).toHaveLength(1);
       expect(entries[0].preHookDecision).toBe("killed");
       expect(entries[0].blockReason).toBe("Kill switch active");
     });
 
-    it("writes preHookDecision:'allowed' with auditFlags for bash warn patterns", async () => {
+    it("writes preHookDecision:'allowed' with auditFlags for bash warn patterns", () => {
       handlePreToolUse(
         { tool_name: "Bash", tool_input: { command: "git push --force origin main" } },
         defaultMarkerRules,
         { sessionId: "s1", isTest: true },
       );
-      await tick();
       const entries = readAuditEntries();
       expect(entries).toHaveLength(1);
       expect(entries[0].preHookDecision).toBe("allowed");

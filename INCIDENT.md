@@ -429,3 +429,21 @@ Confirmed empirically: framework's own test suite (`pnpm test`) produces audit e
 
 **Discovered**: 2026-04-26 night session, Mountain Marker manual audit log inspection.
 **Fix priority**: critical — without this, the audit log doesn't reflect production activity, which makes the entire framework's compliance posture unprovable.
+
+### Resolution (v0.7.4)
+
+LocalFileStorage.append() and rotateIfNeeded() are now synchronous (they were
+already using sync fs methods internally; the async wrapper was misleading).
+All callers updated to use direct calls wrapped in try/catch.
+
+Production-topology regression test added: spawns a child node process via
+child_process.spawn, runs the CLI handler, asserts audit entry exists on disk
+after child exits. This is the test that would have caught the bug.
+
+Bonus: tests now use temp audit log paths via MARKER_AUDIT_LOG_PATH env var,
+stopping pollution of the consumer's ~/.marker/audit.log during pnpm test runs.
+
+Lesson codified: tests for safety/audit infrastructure must mirror the
+production process topology. Long-lived test processes don't exhibit the
+short-lived CLI exit-before-flush pattern that real consumers face. From v0.7.4
+onward, every safety mechanism gets a corresponding spawn-based integration test.

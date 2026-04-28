@@ -3,7 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import * as os from "node:os";
 import { execSync } from "node:child_process";
-import { install } from "./generate.js";
+import { install, regenerateSettings } from "./generate.js";
 
 describe("hooks install integration", () => {
   let tmpDir: string;
@@ -216,6 +216,61 @@ exports.rules = {
     } catch (err: any) {
       expect(err.status).toBe(2);
     }
+  });
+
+  it("install does not overwrite existing settings.json (Incident #10 regression)", () => {
+    // Pre-create a sentinel settings.json
+    const claudeDir = path.join(tmpDir, ".claude");
+    fs.mkdirSync(claudeDir, { recursive: true });
+    const settingsPath = path.join(claudeDir, "settings.json");
+    const sentinel = { _sentinel: "consumer-customised", hooks: {} };
+    fs.writeFileSync(settingsPath, JSON.stringify(sentinel, null, 2), "utf-8");
+
+    install(tmpDir);
+
+    const result = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+    expect(result._sentinel).toBe("consumer-customised");
+  });
+
+  it("install does not overwrite existing config.ts (Incident #9 regression)", () => {
+    // Pre-create a sentinel config.ts
+    const markerDir = path.join(tmpDir, ".marker");
+    fs.mkdirSync(markerDir, { recursive: true });
+    const configTsPath = path.join(markerDir, "config.ts");
+    const sentinelContent = "// sentinel — consumer customised config\nexport const rules = {};\n";
+    fs.writeFileSync(configTsPath, sentinelContent, "utf-8");
+
+    // Run install twice
+    install(tmpDir);
+    install(tmpDir);
+
+    // config.ts should be unchanged
+    const result = fs.readFileSync(configTsPath, "utf-8");
+    expect(result).toBe(sentinelContent);
+
+    // config.js should NOT have been created (since .ts exists)
+    const configJsPath = path.join(markerDir, "config.js");
+    expect(fs.existsSync(configJsPath)).toBe(false);
+  });
+
+  it("regenerateSettings() overwrites existing settings.json with defaults", () => {
+    // Pre-create a sentinel settings.json
+    const claudeDir = path.join(tmpDir, ".claude");
+    fs.mkdirSync(claudeDir, { recursive: true });
+    const settingsPath = path.join(claudeDir, "settings.json");
+    const sentinel = { _sentinel: "consumer-customised", hooks: {} };
+    fs.writeFileSync(settingsPath, JSON.stringify(sentinel, null, 2), "utf-8");
+
+    // Also need .marker/hooks dir for the absolute path resolution
+    fs.mkdirSync(path.join(tmpDir, ".marker", "hooks"), { recursive: true });
+
+    regenerateSettings(tmpDir);
+
+    const result = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
+    expect(result._sentinel).toBeUndefined();
+    expect(result).toHaveProperty("hooks");
+    expect(result.hooks).toHaveProperty("PreToolUse");
+    expect(result.hooks).toHaveProperty("PostToolUse");
   });
 
   it("pretooluse.sh blocks writes to protected paths (exit 2)", () => {

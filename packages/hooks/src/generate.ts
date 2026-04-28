@@ -50,17 +50,25 @@ exec node "${postCliPath}"
   fs.writeFileSync(path.join(hooksDir, "pretooluse.sh"), preToolUseScript, { mode: 0o755 });
   fs.writeFileSync(path.join(hooksDir, "posttooluse.sh"), postToolUseScript, { mode: 0o755 });
 
-  // 3. Write .claude/settings.json
+  // 3. Write .claude/settings.json (idempotent — never overwrite existing)
   const claudeDir = path.join(repoRoot, ".claude");
   fs.mkdirSync(claudeDir, { recursive: true });
 
-  const absoluteHooksDir = path.resolve(repoRoot, ".marker", "hooks");
-  const settings = toClaudeCodeSettings(defaultMarkerRules, absoluteHooksDir);
-  fs.writeFileSync(
-    path.join(claudeDir, "settings.json"),
-    JSON.stringify(settings, null, 2) + "\n",
-    "utf-8",
-  );
+  const settingsPath = path.join(claudeDir, "settings.json");
+  const settingsExists = fs.existsSync(settingsPath);
+
+  if (settingsExists) {
+    console.log(`[marker-hooks] .claude/settings.json already exists — leaving in place.`);
+    console.log(`  To regenerate from defaults, run: marker-hooks regenerate-settings`);
+  } else {
+    const absoluteHooksDir = path.resolve(repoRoot, ".marker", "hooks");
+    const settings = toClaudeCodeSettings(defaultMarkerRules, absoluteHooksDir);
+    fs.writeFileSync(
+      settingsPath,
+      JSON.stringify(settings, null, 2) + "\n",
+      "utf-8",
+    );
+  }
 
   // 4. Add .marker/ to .gitignore if not already there
   const gitignorePath = path.join(repoRoot, ".gitignore");
@@ -117,8 +125,33 @@ export const rules: HookRules = {
   console.log(`[marker-hooks] Installed hooks in ${repoRoot}`);
   console.log(`  - .marker/hooks/pretooluse.sh`);
   console.log(`  - .marker/hooks/posttooluse.sh`);
-  console.log(`  - .claude/settings.json`);
+  if (!settingsExists) {
+    console.log(`  - .claude/settings.json`);
+  }
   if (!tsExists && !jsExists) {
     console.log(`  - .marker/config.js (editable — loaded at runtime)`);
   }
+}
+
+/**
+ * Force-regenerate .claude/settings.json from current defaultMarkerRules.
+ * Explicit — never called by `install()`. Use after major framework upgrades
+ * when consumer wants to pick up new default rules.
+ */
+export function regenerateSettings(targetDir?: string): void {
+  const repoRoot = targetDir ?? findRepoRoot();
+  const claudeDir = path.join(repoRoot, ".claude");
+  fs.mkdirSync(claudeDir, { recursive: true });
+
+  const absoluteHooksDir = path.resolve(repoRoot, ".marker", "hooks");
+  const settings = toClaudeCodeSettings(defaultMarkerRules, absoluteHooksDir);
+  const settingsPath = path.join(claudeDir, "settings.json");
+
+  fs.writeFileSync(
+    settingsPath,
+    JSON.stringify(settings, null, 2) + "\n",
+    "utf-8",
+  );
+
+  console.log(`[marker-hooks] Regenerated ${settingsPath} from defaults.`);
 }

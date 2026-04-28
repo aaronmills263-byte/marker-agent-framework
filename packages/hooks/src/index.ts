@@ -13,5 +13,5 @@ export {
 } from "./adapters.js";
 export { handlePreToolUse, type ToolCallInput, type PreToolUseResult } from "./handlers/pretooluse.js";
 export { handlePostToolUse, type PostToolUseInput } from "./handlers/posttooluse.js";
-export { install, findRepoRoot } from "./generate.js";
+export { install, findRepoRoot, regenerateSettings } from "./generate.js";
 export { loadConsumerRules, findConsumerRoot } from "./config-loader.js";

@@ -447,3 +447,21 @@ Lesson codified: tests for safety/audit infrastructure must mirror the
 production process topology. Long-lived test processes don't exhibit the
 short-lived CLI exit-before-flush pattern that real consumers face. From v0.7.4
 onward, every safety mechanism gets a corresponding spawn-based integration test.
+
+---
+
+## v0.7.5 — Incidents #9 and #10 fixed (Apr 27 2026)
+
+**Incident #9 (idempotent config files)** — Verified existing v0.7.1 fix in `generate.ts` step 5 is correct: install skips writing both `config.ts` and `config.js` if either exists. Added regression test `install_does_not_overwrite_existing_config_ts` to `install.integration.test.ts` to prevent recurrence.
+
+**Incident #10 (settings.json clobbering)** — Fixed: `install()` now skips `.claude/settings.json` if it already exists, mirroring the config file behaviour. New explicit `regenerateSettings()` function (CLI: `marker-hooks regenerate-settings`) added for consumers who want to force-refresh from defaults after framework upgrades. Added regression test `install_does_not_overwrite_existing_settings_json`.
+
+**Architectural principle reinforced**: install commands are one-time setup. They MUST NOT silently modify consumer state on subsequent runs. Upgrades that need to refresh consumer state require explicit opt-in commands.
+
+## Incident #14 — settings.json generated from defaults, ignoring consumer config (NOT FIXED in v0.7.5)
+
+Discovered while fixing #10. `install()` calls `toClaudeCodeSettings(defaultMarkerRules, ...)` — but consumer overrides live in `.marker/config.ts` / `.marker/config.js`. Result: even on fresh install, `.claude/settings.json` reflects only the framework defaults, missing any consumer-added paths (e.g., Mountain Marker's `src/lib/supabase/**`).
+
+Severity: medium. Workaround: consumers manually edit `.claude/settings.json` after install OR rely on the runtime `.marker/config` loading at hook-execution time (which IS reading the consumer config). Risk: divergence between what `settings.json` declares and what hooks actually enforce.
+
+Fix planned for v0.8.0: `install()` should load consumer config (if present), merge with defaults, and write merged settings. Or: separate "what Claude Code gates on" from "what hooks enforce" entirely.
